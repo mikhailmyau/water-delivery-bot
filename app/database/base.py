@@ -4,13 +4,20 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import BigInteger, DateTime
+from sqlalchemy import BigInteger, DateTime, Integer
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 def utcnow() -> datetime:
     """Текущее время в UTC. Все даты в проекте хранятся в UTC."""
     return datetime.now(timezone.utc)
+
+
+# SQLite отдаёт auto-increment ("ROWID alias") только колонке, объявленной
+# буквально как "INTEGER PRIMARY KEY" — BIGINT PRIMARY KEY этим свойством не
+# обладает, и вставка без явного id падает с NOT NULL. Поэтому первичные ключи
+# используют BIGINT везде, кроме SQLite, где остаётся обычный INTEGER.
+BigIntPK = BigInteger().with_variant(Integer, "sqlite")
 
 
 class Base(DeclarativeBase):

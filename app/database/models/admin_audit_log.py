@@ -5,7 +5,7 @@ from __future__ import annotations
 from sqlalchemy import BigInteger, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.database.base import Base, TimestampMixin
+from app.database.base import Base, BigIntPK, TimestampMixin
 
 
 class AdminAuditLog(TimestampMixin, Base):
@@ -13,7 +13,7 @@ class AdminAuditLog(TimestampMixin, Base):
 
     __tablename__ = "admin_audit_log"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True, autoincrement=True)
     admin_telegram_id: Mapped[int] = mapped_column(BigInteger, index=True, nullable=False)
     action: Mapped[str] = mapped_column(String(64), nullable=False)
     old_value: Mapped[str | None] = mapped_column(Text, nullable=True)

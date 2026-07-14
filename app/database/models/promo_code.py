@@ -8,7 +8,7 @@ from sqlalchemy import BigInteger, Boolean, DateTime, Integer, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.database.base import Base, TimestampMixin
+from app.database.base import Base, BigIntPK, TimestampMixin
 
 
 class DiscountType(str, enum.Enum):
@@ -26,7 +26,7 @@ class PromoCode(TimestampMixin, Base):
 
     __tablename__ = "promo_codes"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True, autoincrement=True)
     code: Mapped[str] = mapped_column(String(32), unique=True, index=True, nullable=False)
     discount_type: Mapped[DiscountType] = mapped_column(
         SAEnum(DiscountType, native_enum=False, length=16), nullable=False

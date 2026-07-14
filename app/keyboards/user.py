@@ -111,9 +111,19 @@ def build_payment_keyboard(order_id: int, payment_url: str) -> InlineKeyboardMar
     return builder.as_markup()
 
 
-def build_reminder_keyboard(order_id: int, payment_url: str) -> InlineKeyboardMarkup:
+def build_reminder_keyboard(order_id: int) -> InlineKeyboardMarkup:
+    """Клавиатура напоминания о неоплаченном заказе.
+
+    Использует callback, а не готовую ссылку — платёж создаётся в момент
+    нажатия «Оплатить», поэтому напоминание не зависит от того, создавался
+    ли платёж раньше и не истекла ли прежняя ссылка.
+    """
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="Оплатить", url=payment_url))
+    builder.row(
+        InlineKeyboardButton(
+            text="Оплатить", callback_data=OrderCallback(action="pay", order_id=order_id).pack()
+        )
+    )
     builder.row(
         InlineKeyboardButton(
             text="Отменить заказ",

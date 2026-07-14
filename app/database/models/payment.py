@@ -8,7 +8,7 @@ from sqlalchemy import BigInteger, ForeignKey, Integer, String, Text
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database.base import Base, TimestampMixin
+from app.database.base import Base, BigIntPK, TimestampMixin
 
 
 class PaymentProviderStatus(str, enum.Enum):
@@ -25,7 +25,7 @@ class Payment(TimestampMixin, Base):
 
     __tablename__ = "payments"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True, autoincrement=True)
     order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"), index=True, nullable=False)
 
     provider: Mapped[str] = mapped_column(String(32), nullable=False)

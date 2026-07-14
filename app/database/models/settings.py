@@ -5,7 +5,7 @@ from __future__ import annotations
 from sqlalchemy import BigInteger, Boolean, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.database.base import Base, TimestampMixin
+from app.database.base import Base, BigIntPK, TimestampMixin
 
 SETTINGS_SINGLETON_ID = 1
 
@@ -15,7 +15,7 @@ class BotSettings(TimestampMixin, Base):
 
     __tablename__ = "bot_settings"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, default=SETTINGS_SINGLETON_ID)
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True, default=SETTINGS_SINGLETON_ID)
 
     price_per_liter: Mapped[int] = mapped_column(Integer, nullable=False, default=7800)
     """Цена за литр в копейках. По умолчанию 78 ₽."""

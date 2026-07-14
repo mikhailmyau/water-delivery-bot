@@ -5,7 +5,7 @@ from __future__ import annotations
 from sqlalchemy import BigInteger, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.database.base import Base, TimestampMixin
+from app.database.base import Base, BigIntPK, TimestampMixin
 
 
 class AnalyticsEvent(TimestampMixin, Base):
@@ -13,7 +13,7 @@ class AnalyticsEvent(TimestampMixin, Base):
 
     __tablename__ = "analytics_events"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True, autoincrement=True)
     event: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     order_id: Mapped[int | None] = mapped_column(
