@@ -138,6 +138,12 @@ class OrderRepository(BaseRepository):
         order.delivery_status = status
         await self.session.flush()
 
+    async def update_address(self, order: Order, city: str, street: str, house: str) -> None:
+        order.city = city
+        order.street = street
+        order.house = house
+        await self.session.flush()
+
     async def delete(self, order: Order) -> None:
         await self.session.delete(order)
         await self.session.flush()
