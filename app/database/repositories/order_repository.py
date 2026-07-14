@@ -82,6 +82,16 @@ class OrderRepository(BaseRepository):
         )
         return list(result.scalars().all())
 
+    async def list_unpaid(self, limit: int = ADMIN_RECENT_ORDERS_LIMIT) -> list[Order]:
+        result = await self.session.execute(
+            select(Order)
+            .options(selectinload(Order.user))
+            .where(Order.payment_status.in_([PaymentStatus.NEW, PaymentStatus.WAITING]))
+            .order_by(Order.created_at.desc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
     async def list_by_user(self, user_id: int, limit: int = 10) -> list[Order]:
         result = await self.session.execute(
             select(Order)

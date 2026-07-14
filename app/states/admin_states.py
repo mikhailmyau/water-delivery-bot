@@ -35,3 +35,10 @@ class AdminBroadcastStates(StatesGroup):
 
     waiting_content = State()
     waiting_confirmation = State()
+
+
+class AdminOrderStates(StatesGroup):
+    """Поиск заказа и отправка сообщения клиенту из карточки заказа."""
+
+    waiting_search_number = State()
+    waiting_client_message = State()

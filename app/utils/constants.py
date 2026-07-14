@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from app.config import BASE_DIR
+
+LOG_FILE_PATH = BASE_DIR / "logs" / "app.log"
+
 # Объём заказа (в литрах). Свободный ввод объёма запрещён ТЗ — только выбор из списка.
 MIN_VOLUME_LITERS = 120
 MAX_VOLUME_LITERS = 200
