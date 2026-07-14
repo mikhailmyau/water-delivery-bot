@@ -3,12 +3,19 @@
 from __future__ import annotations
 
 import enum
+from datetime import datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String
+from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base, BigIntPK, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.database.models.payment import Payment
+    from app.database.models.promo_code import PromoCode
+    from app.database.models.user import User
 
 
 class PaymentStatus(str, enum.Enum):
@@ -75,29 +82,25 @@ class Order(TimestampMixin, Base):
         index=True,
     )
 
-    promo_code_id: Mapped[int | None] = mapped_column(
-        ForeignKey("promo_codes.id"), nullable=True
-    )
+    promo_code_id: Mapped[int | None] = mapped_column(ForeignKey("promo_codes.id"), nullable=True)
 
-    paid_at: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    reminder_first_sent_at: Mapped[object | None] = mapped_column(
+    reminder_first_sent_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    reminder_second_sent_at: Mapped[object | None] = mapped_column(
+    reminder_second_sent_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 
-    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
-    promo_code: Mapped["PromoCode | None"] = relationship(
-        "PromoCode", foreign_keys=[promo_code_id]
-    )
-    payments: Mapped[list["Payment"]] = relationship(
+    user: Mapped[User] = relationship("User", foreign_keys=[user_id])
+    promo_code: Mapped[PromoCode | None] = relationship("PromoCode", foreign_keys=[promo_code_id])
+    payments: Mapped[list[Payment]] = relationship(
         "Payment", back_populates="order", order_by="Payment.created_at.desc()"
     )
 
     @property
-    def current_payment(self) -> "Payment | None":
+    def current_payment(self) -> Payment | None:
         """Последний созданный платёж по заказу (заказ может иметь несколько попыток оплаты)."""
         return self.payments[0] if self.payments else None
 

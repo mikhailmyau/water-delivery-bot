@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 import io
 
-from aiogram import F, Router
+from aiogram import Bot, F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BufferedInputFile, CallbackQuery, Message
@@ -78,14 +78,18 @@ async def _render_orders_menu(session: AsyncSession) -> str:
 @router.message(Command("orders"))
 async def handle_orders_command(message: Message, state: FSMContext, session: AsyncSession) -> None:
     await state.clear()
-    await message.answer(await _render_orders_menu(session), reply_markup=build_admin_orders_menu_keyboard())
+    await message.answer(
+        await _render_orders_menu(session), reply_markup=build_admin_orders_menu_keyboard()
+    )
 
 
 @router.callback_query(AdminCallback.filter((F.section == "orders") & (F.action == "menu")))
-async def handle_orders_menu(callback: CallbackQuery, state: FSMContext, session: AsyncSession) -> None:
+async def handle_orders_menu(
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession
+) -> None:
     await state.clear()
     await callback.answer()
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text(
             await _render_orders_menu(session), reply_markup=build_admin_orders_menu_keyboard()
         )
@@ -95,19 +99,25 @@ async def handle_orders_menu(callback: CallbackQuery, state: FSMContext, session
 async def handle_orders_recent(callback: CallbackQuery, session: AsyncSession) -> None:
     orders = await OrderRepository(session).list_recent()
     await callback.answer()
-    if callback.message is None:
+    if not isinstance(callback.message, Message):
         return
     if not orders:
-        await callback.message.edit_text("Заказов пока нет.", reply_markup=build_admin_orders_menu_keyboard())
+        await callback.message.edit_text(
+            "Заказов пока нет.", reply_markup=build_admin_orders_menu_keyboard()
+        )
         return
-    await callback.message.edit_text("Последние заказы:", reply_markup=build_admin_orders_list_keyboard(orders))
+    await callback.message.edit_text(
+        "Последние заказы:", reply_markup=build_admin_orders_list_keyboard(orders)
+    )
 
 
-@router.callback_query(AdminCallback.filter((F.section == "orders") & (F.action == "filter_unpaid")))
+@router.callback_query(
+    AdminCallback.filter((F.section == "orders") & (F.action == "filter_unpaid"))
+)
 async def handle_orders_unpaid(callback: CallbackQuery, session: AsyncSession) -> None:
     orders = await OrderRepository(session).list_unpaid()
     await callback.answer()
-    if callback.message is None:
+    if not isinstance(callback.message, Message):
         return
     if not orders:
         await callback.message.edit_text(
@@ -125,7 +135,7 @@ async def handle_order_open(
 ) -> None:
     order = await OrderRepository(session).get_by_id(int(callback_data.param), with_relations=True)
     await callback.answer()
-    if callback.message is None or order is None:
+    if not isinstance(callback.message, Message) or order is None:
         return
     await callback.message.edit_text(
         _format_order_detail(order), reply_markup=build_admin_order_detail_keyboard(order)
@@ -134,7 +144,11 @@ async def handle_order_open(
 
 @router.callback_query(AdminCallback.filter((F.section == "orders") & (F.action == "set_status")))
 async def handle_order_set_status(
-    callback: CallbackQuery, callback_data: AdminCallback, session: AsyncSession, user: User
+    callback: CallbackQuery,
+    callback_data: AdminCallback,
+    session: AsyncSession,
+    user: User,
+    bot: Bot,
 ) -> None:
     order_id_str, status_value = callback_data.param.split(":")
     order_repo = OrderRepository(session)
@@ -149,14 +163,14 @@ async def handle_order_set_status(
         user.telegram_id, "order_status_changed", old_status, status_value
     )
 
-    notification_service = NotificationService(callback.bot)
+    notification_service = NotificationService(bot)
     await notification_service.send_to_user(
         order.user.telegram_id,
         f"Статус вашего заказа #{order.order_number} изменён: {status_value}.",
     )
 
     await callback.answer("Статус обновлён.")
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text(
             _format_order_detail(order), reply_markup=build_admin_order_detail_keyboard(order)
         )
@@ -169,19 +183,21 @@ async def handle_order_message_prompt(
     await state.set_state(AdminOrderStates.waiting_client_message)
     await state.update_data(target_order_id=int(callback_data.param))
     await callback.answer()
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text("Введите текст сообщения для клиента.")
 
 
 @router.message(AdminOrderStates.waiting_client_message)
-async def handle_order_message_send(message: Message, state: FSMContext, session: AsyncSession) -> None:
+async def handle_order_message_send(
+    message: Message, state: FSMContext, session: AsyncSession, bot: Bot
+) -> None:
     data = await state.get_data()
     order = await OrderRepository(session).get_by_id(data["target_order_id"], with_relations=True)
     await state.clear()
     if order is None or order.user is None:
         await message.answer("Заказ не найден.")
         return
-    notification_service = NotificationService(message.bot)
+    notification_service = NotificationService(bot)
     delivered = await notification_service.send_to_user(
         order.user.telegram_id, f"Сообщение от службы поддержки:\n\n{message.text}"
     )
@@ -201,9 +217,11 @@ async def handle_order_delete(
         return
     order_number = order.order_number
     await order_repo.delete(order)
-    await AdminAuditLogRepository(session).add(user.telegram_id, "order_deleted", order_number, None)
+    await AdminAuditLogRepository(session).add(
+        user.telegram_id, "order_deleted", order_number, None
+    )
     await callback.answer("Заказ удалён.")
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text(
             await _render_orders_menu(session), reply_markup=build_admin_orders_menu_keyboard()
         )
@@ -213,21 +231,31 @@ async def handle_order_delete(
 async def handle_order_search_prompt(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(AdminOrderStates.waiting_search_number)
     await callback.answer()
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text("Введите номер заказа (например: 000123).")
 
 
 @router.message(AdminOrderStates.waiting_search_number)
-async def handle_order_search_input(message: Message, state: FSMContext, session: AsyncSession) -> None:
+async def handle_order_search_input(
+    message: Message, state: FSMContext, session: AsyncSession
+) -> None:
     order_number = (message.text or "").strip().lstrip("#")
     order = await OrderRepository(session).get_by_number(order_number.zfill(6))
     await state.clear()
     if order is None:
-        await message.answer("Заказ с таким номером не найден.", reply_markup=build_admin_orders_menu_keyboard())
+        await message.answer(
+            "Заказ с таким номером не найден.", reply_markup=build_admin_orders_menu_keyboard()
+        )
         return
-    order = await OrderRepository(session).get_by_id(order.id, with_relations=True)
+    detailed_order = await OrderRepository(session).get_by_id(order.id, with_relations=True)
+    if detailed_order is None:
+        await message.answer(
+            "Заказ с таким номером не найден.", reply_markup=build_admin_orders_menu_keyboard()
+        )
+        return
     await message.answer(
-        _format_order_detail(order), reply_markup=build_admin_order_detail_keyboard(order)
+        _format_order_detail(detailed_order),
+        reply_markup=build_admin_order_detail_keyboard(detailed_order),
     )
 
 
@@ -237,7 +265,17 @@ async def handle_order_export(callback: CallbackQuery, session: AsyncSession) ->
     buffer = io.StringIO()
     writer = csv.writer(buffer)
     writer.writerow(
-        ["order_number", "created_at", "city", "street", "house", "volume", "total_price_rub", "payment_status", "delivery_status"]
+        [
+            "order_number",
+            "created_at",
+            "city",
+            "street",
+            "house",
+            "volume",
+            "total_price_rub",
+            "payment_status",
+            "delivery_status",
+        ]
     )
     for order in orders:
         writer.writerow(
@@ -255,5 +293,7 @@ async def handle_order_export(callback: CallbackQuery, session: AsyncSession) ->
         )
     document = BufferedInputFile(buffer.getvalue().encode("utf-8-sig"), filename="orders.csv")
     await callback.answer()
-    if callback.message is not None:
-        await callback.message.answer_document(document, caption=f"Экспорт заказов: {len(orders)} шт.")
+    if isinstance(callback.message, Message):
+        await callback.message.answer_document(
+            document, caption=f"Экспорт заказов: {len(orders)} шт."
+        )

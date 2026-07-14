@@ -11,7 +11,7 @@ from app.callbacks.main_menu import MenuCallback
 from app.callbacks.order import PromoCallback
 from app.database.models.promo_code import DiscountType
 from app.database.models.user import User
-from app.keyboards.user import build_promo_prompt_keyboard, build_main_menu_keyboard
+from app.keyboards.user import build_main_menu_keyboard, build_promo_prompt_keyboard
 from app.middlewares.throttling import RateLimiter
 from app.services.promo_service import PromoService
 from app.states.promo_states import PromoStates
@@ -26,15 +26,17 @@ _promo_rate_limiter = RateLimiter()
 async def handle_open_promo(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(PromoStates.waiting_code)
     await callback.answer()
-    if callback.message is not None:
-        await callback.message.edit_text("Введите промокод.", reply_markup=build_promo_prompt_keyboard())
+    if isinstance(callback.message, Message):
+        await callback.message.edit_text(
+            "Введите промокод.", reply_markup=build_promo_prompt_keyboard()
+        )
 
 
 @router.callback_query(PromoCallback.filter(F.action == "skip"))
 async def handle_skip_promo(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(None)
     await callback.answer()
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text("Главное меню:", reply_markup=build_main_menu_keyboard())
 
 
@@ -57,6 +59,9 @@ async def handle_promo_input(
         return
 
     promo = result.promo
+    assert (
+        promo is not None
+    )  # noqa: S101 — гарантировано инвариантом PromoValidationResult.is_valid
     await state.update_data(promo_code_id=promo.id)
     await state.set_state(None)
 

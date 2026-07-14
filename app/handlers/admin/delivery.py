@@ -37,7 +37,9 @@ async def _render_delivery_menu(session: AsyncSession) -> str:
 
 
 @router.message(Command("delivery"))
-async def handle_delivery_command(message: Message, state: FSMContext, session: AsyncSession) -> None:
+async def handle_delivery_command(
+    message: Message, state: FSMContext, session: AsyncSession
+) -> None:
     await state.clear()
     await message.answer(
         await _render_delivery_menu(session), reply_markup=build_admin_delivery_menu_keyboard()
@@ -45,10 +47,12 @@ async def handle_delivery_command(message: Message, state: FSMContext, session: 
 
 
 @router.callback_query(AdminCallback.filter((F.section == "delivery") & (F.action == "menu")))
-async def handle_delivery_menu(callback: CallbackQuery, state: FSMContext, session: AsyncSession) -> None:
+async def handle_delivery_menu(
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession
+) -> None:
     await state.clear()
     await callback.answer()
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text(
             await _render_delivery_menu(session), reply_markup=build_admin_delivery_menu_keyboard()
         )
@@ -58,23 +62,27 @@ async def handle_delivery_menu(callback: CallbackQuery, state: FSMContext, sessi
 async def handle_edit_delivery_price(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(AdminDeliveryStates.waiting_delivery_price)
     await callback.answer()
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text("Введите новую стоимость доставки (в рублях).")
 
 
-@router.callback_query(AdminCallback.filter((F.section == "delivery") & (F.action == "edit_free_from")))
+@router.callback_query(
+    AdminCallback.filter((F.section == "delivery") & (F.action == "edit_free_from"))
+)
 async def handle_edit_free_from(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(AdminDeliveryStates.waiting_free_delivery_from)
     await callback.answer()
-    if callback.message is not None:
-        await callback.message.edit_text("Введите объём (в литрах), от которого доставка бесплатна.")
+    if isinstance(callback.message, Message):
+        await callback.message.edit_text(
+            "Введите объём (в литрах), от которого доставка бесплатна."
+        )
 
 
 @router.callback_query(AdminCallback.filter((F.section == "delivery") & (F.action == "edit_days")))
 async def handle_edit_days(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(AdminDeliveryStates.waiting_delivery_days)
     await callback.answer()
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text("Введите срок обычной доставки (например: до 5 дней).")
 
 
@@ -83,8 +91,8 @@ async def handle_delivery_price_value(
     message: Message, state: FSMContext, session: AsyncSession, user: User
 ) -> None:
     value, error = parse_positive_amount(message.text or "")
-    if error:
-        await message.answer(error)
+    if error is not None or value is None:
+        await message.answer(error or "Введите корректное числовое значение.")
         return
     new_price = rubles_to_kopecks(value)
     delivery_service = DeliveryService(session)
@@ -104,8 +112,8 @@ async def handle_free_from_value(
     message: Message, state: FSMContext, session: AsyncSession, user: User
 ) -> None:
     value, error = parse_non_negative_int(message.text or "")
-    if error:
-        await message.answer(error)
+    if error is not None or value is None:
+        await message.answer(error or "Введите корректное числовое значение.")
         return
     delivery_service = DeliveryService(session)
     await delivery_service.update_settings(free_delivery_from_liters=value)
@@ -147,4 +155,6 @@ async def handle_express_days_value(
         user.telegram_id, "delivery_days_changed", None, f"{data.get('delivery_days')} / {text}"
     )
     await state.clear()
-    await message.answer("Сроки доставки обновлены.", reply_markup=build_admin_delivery_menu_keyboard())
+    await message.answer(
+        "Сроки доставки обновлены.", reply_markup=build_admin_delivery_menu_keyboard()
+    )

@@ -68,7 +68,11 @@ class PaymentService:
         await self.analytics_service.track(
             AnalyticsEvents.PAYMENT_ATTEMPTED, user_id=order.user_id, order_id=order.id
         )
-        logger.info("Payment created: order=%s provider_payment_id=%s", order.order_number, payment.provider_payment_id)
+        logger.info(
+            "Payment created: order=%s provider_payment_id=%s",
+            order.order_number,
+            payment.provider_payment_id,
+        )
         return payment
 
     async def handle_status_result(self, status_result: PaymentStatusResult) -> Order | None:
@@ -118,7 +122,9 @@ class PaymentService:
         await self.analytics_service.track(
             AnalyticsEvents.PAYMENT_SUCCEEDED, user_id=order.user_id, order_id=order.id
         )
-        logger.info("Payment succeeded: order=%s amount=%s", order.order_number, status_result.amount)
+        logger.info(
+            "Payment succeeded: order=%s amount=%s", order.order_number, status_result.amount
+        )
 
         if self.notifications is not None:
             bot_settings = await self.settings_service.get()

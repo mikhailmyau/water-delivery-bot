@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import BigInteger, DateTime, Integer
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -10,7 +10,22 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 def utcnow() -> datetime:
     """Текущее время в UTC. Все даты в проекте хранятся в UTC."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
+
+
+def ensure_utc(value: datetime | None) -> datetime | None:
+    """Гарантирует наличие tzinfo=UTC.
+
+    SQLite не хранит offset и всегда возвращает naive datetime, даже для
+    колонок DateTime(timezone=True) — в отличие от PostgreSQL. Прямое
+    Python-сравнение naive/aware значений валит TypeError, поэтому перед
+    любым таким сравнением значение из БД нужно пропустить через эту функцию.
+    """
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value
 
 
 # SQLite отдаёт auto-increment ("ROWID alias") только колонке, объявленной

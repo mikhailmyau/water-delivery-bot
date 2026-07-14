@@ -18,18 +18,14 @@ class PromoCodeRepository(BaseRepository):
         super().__init__(session)
 
     async def get_by_code(self, code: str) -> PromoCode | None:
-        result = await self.session.execute(
-            select(PromoCode).where(PromoCode.code == code.upper())
-        )
+        result = await self.session.execute(select(PromoCode).where(PromoCode.code == code.upper()))
         return result.scalar_one_or_none()
 
     async def get_by_id(self, promo_code_id: int) -> PromoCode | None:
         return await self.session.get(PromoCode, promo_code_id)
 
     async def list_all(self) -> list[PromoCode]:
-        result = await self.session.execute(
-            select(PromoCode).order_by(PromoCode.created_at.desc())
-        )
+        result = await self.session.execute(select(PromoCode).order_by(PromoCode.created_at.desc()))
         return list(result.scalars().all())
 
     async def create(

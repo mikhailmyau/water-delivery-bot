@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.database.base import ensure_utc
 from app.database.models.promo_code import DiscountType, PromoCode
 from app.database.repositories.promo_code_repository import PromoCodeRepository
 
@@ -32,7 +33,8 @@ class PromoService:
         promo = await self.repo.get_by_code(code.strip())
         if promo is None or not promo.is_active:
             return PromoValidationResult(False, error_message=self._NOT_FOUND_MESSAGE)
-        if promo.expires_at is not None and promo.expires_at < datetime.now(timezone.utc):
+        expires_at = ensure_utc(promo.expires_at)
+        if expires_at is not None and expires_at < datetime.now(UTC):
             return PromoValidationResult(False, error_message=self._NOT_FOUND_MESSAGE)
         if promo.usage_limit is not None and promo.used_count >= promo.usage_limit:
             return PromoValidationResult(False, error_message=self._NOT_FOUND_MESSAGE)

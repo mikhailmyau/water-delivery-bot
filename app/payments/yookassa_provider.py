@@ -135,11 +135,16 @@ class YooKassaPaymentProvider(PaymentProvider):
             try:
                 async with aiohttp.ClientSession() as http_session:
                     async with http_session.request(
-                        method, url, headers=headers, json=json_body, timeout=aiohttp.ClientTimeout(total=15)
+                        method,
+                        url,
+                        headers=headers,
+                        json=json_body,
+                        timeout=aiohttp.ClientTimeout(total=15),
                     ) as response:
                         data = await response.json()
                         if 400 <= response.status < 500:
-                            # Ошибка на стороне запроса (неверные данные, авторизация) — повторять бессмысленно.
+                            # Ошибка на стороне запроса (неверные данные, авторизация) —
+                            # повторять бессмысленно.
                             raise PaymentProviderError(f"YooKassa {response.status}: {data}")
                         if response.status >= 500:
                             raise _RetryableError(f"YooKassa {response.status}: {data}")

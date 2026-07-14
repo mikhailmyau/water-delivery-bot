@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import enum
+from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, ForeignKey, Integer, String, Text
 from sqlalchemy import Enum as SAEnum
+from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base, BigIntPK, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.database.models.order import Order
 
 
 class PaymentProviderStatus(str, enum.Enum):
@@ -46,9 +50,7 @@ class Payment(TimestampMixin, Base):
     raw_response: Mapped[str | None] = mapped_column(Text, nullable=True)
     """Полный JSON-ответ платёжного API, сохраняется как есть."""
 
-    order: Mapped["Order"] = relationship(
-        "Order", back_populates="payments", foreign_keys=[order_id]
-    )
+    order: Mapped[Order] = relationship("Order", back_populates="payments", foreign_keys=[order_id])
 
     def __repr__(self) -> str:
         return f"Payment(id={self.id}, provider={self.provider}, status={self.status})"

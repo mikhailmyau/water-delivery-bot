@@ -28,5 +28,5 @@ async def handle_admin_command(message: Message, state: FSMContext) -> None:
 async def handle_admin_menu_callback(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     await callback.answer()
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text(_MENU_TEXT, reply_markup=build_admin_main_menu_keyboard())

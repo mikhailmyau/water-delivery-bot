@@ -18,7 +18,9 @@ router = Router(name="start")
 
 
 @router.message(CommandStart())
-async def handle_start(message: Message, state: FSMContext, session: AsyncSession, user: User) -> None:
+async def handle_start(
+    message: Message, state: FSMContext, session: AsyncSession, user: User
+) -> None:
     await state.clear()
     settings_service = SettingsService(session)
     bot_settings = await settings_service.get()
@@ -36,14 +38,22 @@ async def handle_start(message: Message, state: FSMContext, session: AsyncSessio
 
 
 @router.callback_query(MenuCallback.filter(F.action == "home"))
-async def handle_back_to_menu(callback: CallbackQuery, state: FSMContext, session: AsyncSession) -> None:
+async def handle_back_to_menu(
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession
+) -> None:
     await state.clear()
     settings_service = SettingsService(session)
     bot_settings = await settings_service.get()
     await callback.answer()
-    if callback.message is None:
+    if not isinstance(callback.message, Message):
         return
     try:
-        await callback.message.edit_text(bot_settings.welcome_text, reply_markup=build_main_menu_keyboard())
-    except Exception:  # noqa: BLE001 — сообщение могло быть с фото, edit_text для такого не работает
-        await callback.message.answer(bot_settings.welcome_text, reply_markup=build_main_menu_keyboard())
+        await callback.message.edit_text(
+            bot_settings.welcome_text, reply_markup=build_main_menu_keyboard()
+        )
+    except (
+        Exception
+    ):  # noqa: BLE001 — сообщение могло быть с фото, edit_text для такого не работает
+        await callback.message.answer(
+            bot_settings.welcome_text, reply_markup=build_main_menu_keyboard()
+        )

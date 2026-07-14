@@ -52,17 +52,18 @@ class Settings(BaseSettings):
         if value is None or value == "":
             return []
         if isinstance(value, list):
-            return [int(item) for item in value]
+            return [int(str(item)) for item in value]
         if isinstance(value, str):
             return [int(item.strip()) for item in value.split(",") if item.strip()]
-        return [int(value)]
+        return [int(str(value))]
 
     @field_validator("admin_group_id", mode="before")
     @classmethod
     def _parse_admin_group_id(cls, value: object) -> int | None:
         if value in (None, ""):
             return None
-        return int(value)
+        return int(str(value))
 
 
-settings = Settings()
+# Обязательные поля приходят из .env/окружения в рантайме, mypy не видит их статически.
+settings = Settings()  # type: ignore[call-arg]

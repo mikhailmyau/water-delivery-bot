@@ -44,7 +44,7 @@ class BroadcastResult:
 
 
 class BroadcastService:
-    """Отправляет содержимое рассылки всем активным пользователям пачками, без спама и флуд-лимитов."""
+    """Отправляет содержимое рассылки всем активным пользователям пачками, без спама и флуда."""
 
     def __init__(self, bot: Bot, session: AsyncSession) -> None:
         self.bot = bot
@@ -56,7 +56,9 @@ class BroadcastService:
 
         for start in range(0, len(telegram_ids), _BROADCAST_CHUNK_SIZE):
             chunk = telegram_ids[start : start + _BROADCAST_CHUNK_SIZE]
-            await asyncio.gather(*(self._send_one(telegram_id, content, result) for telegram_id in chunk))
+            await asyncio.gather(
+                *(self._send_one(telegram_id, content, result) for telegram_id in chunk)
+            )
             await asyncio.sleep(_BROADCAST_CHUNK_DELAY_SECONDS)
 
         return result
@@ -72,7 +74,9 @@ class BroadcastService:
             try:
                 await self._dispatch(telegram_id, content)
                 result.sent += 1
-            except Exception:  # noqa: BLE001 — рассылка не должна прерываться из-за одного получателя
+            except (
+                Exception
+            ):  # noqa: BLE001 — рассылка не должна прерываться из-за одного получателя
                 result.failed += 1
         except (TelegramForbiddenError, TelegramNotFound):
             await self.user_repo.mark_blocked(telegram_id, True)
@@ -84,11 +88,16 @@ class BroadcastService:
     async def _dispatch(self, telegram_id: int, content: BroadcastContent) -> None:
         if content.content_type == BroadcastContentType.TEXT:
             await self.bot.send_message(telegram_id, content.text or "")
-        elif content.content_type == BroadcastContentType.PHOTO:
-            await self.bot.send_photo(telegram_id, content.file_id, caption=content.text)
+            return
+
+        # Для всех остальных типов file_id всегда заполнен — см. handlers/admin/broadcast.py.
+        file_id = content.file_id
+        assert file_id is not None
+        if content.content_type == BroadcastContentType.PHOTO:
+            await self.bot.send_photo(telegram_id, file_id, caption=content.text)
         elif content.content_type == BroadcastContentType.VIDEO:
-            await self.bot.send_video(telegram_id, content.file_id, caption=content.text)
+            await self.bot.send_video(telegram_id, file_id, caption=content.text)
         elif content.content_type == BroadcastContentType.ANIMATION:
-            await self.bot.send_animation(telegram_id, content.file_id, caption=content.text)
+            await self.bot.send_animation(telegram_id, file_id, caption=content.text)
         elif content.content_type == BroadcastContentType.DOCUMENT:
-            await self.bot.send_document(telegram_id, content.file_id, caption=content.text)
+            await self.bot.send_document(telegram_id, file_id, caption=content.text)

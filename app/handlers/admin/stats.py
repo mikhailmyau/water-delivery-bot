@@ -56,17 +56,20 @@ async def _render(session: AsyncSession, period: str) -> str:
 @router.message(Command("stats"))
 async def handle_stats_command(message: Message, state: FSMContext, session: AsyncSession) -> None:
     await state.clear()
-    await message.answer(await _render(session, "today"), reply_markup=build_admin_stats_period_keyboard())
+    await message.answer(
+        await _render(session, "today"), reply_markup=build_admin_stats_period_keyboard()
+    )
 
 
 @router.callback_query(
     AdminCallback.filter(
-        ((F.section == "stats") & (F.action == "menu")) | ((F.section == "analytics") & (F.action == "menu"))
+        ((F.section == "stats") & (F.action == "menu"))
+        | ((F.section == "analytics") & (F.action == "menu"))
     )
 )
 async def handle_stats_menu(callback: CallbackQuery, session: AsyncSession) -> None:
     await callback.answer()
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text(
             await _render(session, "today"), reply_markup=build_admin_stats_period_keyboard()
         )
@@ -77,7 +80,8 @@ async def handle_stats_period(
     callback: CallbackQuery, callback_data: AdminCallback, session: AsyncSession
 ) -> None:
     await callback.answer()
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text(
-            await _render(session, callback_data.param), reply_markup=build_admin_stats_period_keyboard()
+            await _render(session, callback_data.param),
+            reply_markup=build_admin_stats_period_keyboard(),
         )

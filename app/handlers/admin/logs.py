@@ -38,8 +38,10 @@ async def handle_logs_command(message: Message) -> None:
 @router.callback_query(AdminCallback.filter((F.section == "logs") & (F.action == "menu")))
 async def handle_logs_menu(callback: CallbackQuery) -> None:
     await callback.answer()
-    if callback.message is not None:
-        await callback.message.edit_text("Выберите уровень логов:", reply_markup=build_admin_logs_menu_keyboard())
+    if isinstance(callback.message, Message):
+        await callback.message.edit_text(
+            "Выберите уровень логов:", reply_markup=build_admin_logs_menu_keyboard()
+        )
 
 
 @router.callback_query(AdminCallback.filter((F.section == "logs") & (F.action == "level")))
@@ -51,7 +53,9 @@ async def handle_logs_level(callback: CallbackQuery, callback_data: AdminCallbac
     # Внутри code-блока MarkdownV2 экранировать нужно только \ и `.
     escaped = text.replace("\\", "\\\\").replace("`", "\\`")
     await callback.answer()
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text(
-            f"```\n{escaped}\n```", reply_markup=build_admin_logs_menu_keyboard(), parse_mode="MarkdownV2"
+            f"```\n{escaped}\n```",
+            reply_markup=build_admin_logs_menu_keyboard(),
+            parse_mode="MarkdownV2",
         )

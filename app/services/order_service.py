@@ -48,9 +48,7 @@ class OrderService:
         self.promo_service = PromoService(session)
         self.analytics_service = AnalyticsService(session)
 
-    async def calculate(
-        self, volume: int, promo: PromoCode | None = None
-    ) -> OrderCalculation:
+    async def calculate(self, volume: int, promo: PromoCode | None = None) -> OrderCalculation:
         price_per_liter = await self.price_service.get_price_per_liter()
         product_price = price_per_liter * volume
         quote = await self.delivery_service.calculate(volume)

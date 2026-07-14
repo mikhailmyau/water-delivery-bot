@@ -32,14 +32,18 @@ async def _render_price_menu(session: AsyncSession) -> str:
 @router.message(Command("price"))
 async def handle_price_command(message: Message, state: FSMContext, session: AsyncSession) -> None:
     await state.clear()
-    await message.answer(await _render_price_menu(session), reply_markup=build_admin_price_menu_keyboard())
+    await message.answer(
+        await _render_price_menu(session), reply_markup=build_admin_price_menu_keyboard()
+    )
 
 
 @router.callback_query(AdminCallback.filter((F.section == "price") & (F.action == "menu")))
-async def handle_price_menu(callback: CallbackQuery, state: FSMContext, session: AsyncSession) -> None:
+async def handle_price_menu(
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession
+) -> None:
     await state.clear()
     await callback.answer()
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text(
             await _render_price_menu(session), reply_markup=build_admin_price_menu_keyboard()
         )
@@ -49,7 +53,7 @@ async def handle_price_menu(callback: CallbackQuery, state: FSMContext, session:
 async def handle_price_edit_prompt(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(AdminPriceStates.waiting_price)
     await callback.answer()
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text("Введите новую цену за литр (в рублях).")
 
 
@@ -58,8 +62,8 @@ async def handle_price_value(
     message: Message, state: FSMContext, session: AsyncSession, user: User
 ) -> None:
     value, error = parse_positive_amount(message.text or "")
-    if error:
-        await message.answer(error)
+    if error is not None or value is None:
+        await message.answer(error or "Введите корректное числовое значение.")
         return
 
     price_service = PriceService(session)
@@ -68,12 +72,13 @@ async def handle_price_value(
     await price_service.set_price_per_liter(new_price)
 
     audit_repo = AdminAuditLogRepository(session)
-    await audit_repo.add(
-        user.telegram_id, "price_changed", str(old_price), str(new_price)
-    )
+    await audit_repo.add(user.telegram_id, "price_changed", str(old_price), str(new_price))
 
     await state.clear()
-    await message.answer(
-        f"━━━━━━━━━━━━━━\nЦена успешно обновлена.\n\nНовая стоимость: {format_price(new_price)}\n━━━━━━━━━━━━━━",
-        reply_markup=build_admin_price_menu_keyboard(),
+    confirmation_text = (
+        "━━━━━━━━━━━━━━\n"
+        "Цена успешно обновлена.\n\n"
+        f"Новая стоимость: {format_price(new_price)}\n"
+        "━━━━━━━━━━━━━━"
     )
+    await message.answer(confirmation_text, reply_markup=build_admin_price_menu_keyboard())

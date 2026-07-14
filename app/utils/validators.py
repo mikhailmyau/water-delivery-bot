@@ -2,11 +2,7 @@
 
 from __future__ import annotations
 
-from app.utils.constants import (
-    AVAILABLE_VOLUMES_LITERS,
-    MIN_ADDRESS_LENGTH,
-    MIN_CITY_LENGTH,
-)
+from app.utils.constants import AVAILABLE_VOLUMES_LITERS, MIN_ADDRESS_LENGTH, MIN_CITY_LENGTH
 
 
 class ValidationResult:
@@ -19,11 +15,11 @@ class ValidationResult:
         self.error_message = error_message
 
     @classmethod
-    def ok(cls) -> "ValidationResult":
+    def ok(cls) -> ValidationResult:
         return cls(True)
 
     @classmethod
-    def error(cls, message: str) -> "ValidationResult":
+    def error(cls, message: str) -> ValidationResult:
         return cls(False, message)
 
 
@@ -39,18 +35,14 @@ def validate_city(value: str) -> ValidationResult:
 def validate_address(value: str) -> ValidationResult:
     value = value.strip()
     if len(value) < MIN_ADDRESS_LENGTH:
-        return ValidationResult.error(
-            "Похоже, в адресе есть неточность. Проверьте его ещё раз."
-        )
+        return ValidationResult.error("Похоже, в адресе есть неточность. Проверьте его ещё раз.")
     return ValidationResult.ok()
 
 
 def validate_house(value: str) -> ValidationResult:
     value = value.strip()
     if not value:
-        return ValidationResult.error(
-            "Похоже, номер дома не указан. Проверьте его ещё раз."
-        )
+        return ValidationResult.error("Похоже, номер дома не указан. Проверьте его ещё раз.")
     return ValidationResult.ok()
 
 

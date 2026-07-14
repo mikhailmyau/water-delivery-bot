@@ -19,9 +19,7 @@ class UserRepository(BaseRepository):
         super().__init__(session)
 
     async def get_by_telegram_id(self, telegram_id: int) -> User | None:
-        result = await self.session.execute(
-            select(User).where(User.telegram_id == telegram_id)
-        )
+        result = await self.session.execute(select(User).where(User.telegram_id == telegram_id))
         return result.scalar_one_or_none()
 
     async def get_by_id(self, user_id: int) -> User | None:
@@ -79,9 +77,7 @@ class UserRepository(BaseRepository):
         return len(result.all())
 
     async def count_created_after(self, since: datetime) -> int:
-        result = await self.session.execute(
-            select(User.id).where(User.created_at >= since)
-        )
+        result = await self.session.execute(select(User.id).where(User.created_at >= since))
         return len(result.all())
 
     async def list_active_telegram_ids(self) -> list[int]:

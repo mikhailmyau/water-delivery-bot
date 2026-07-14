@@ -68,9 +68,7 @@ class OrderRepository(BaseRepository):
         return await self.session.get(Order, order_id)
 
     async def get_by_number(self, order_number: str) -> Order | None:
-        result = await self.session.execute(
-            select(Order).where(Order.order_number == order_number)
-        )
+        result = await self.session.execute(select(Order).where(Order.order_number == order_number))
         return result.scalar_one_or_none()
 
     async def list_recent(self, limit: int = ADMIN_RECENT_ORDERS_LIMIT) -> list[Order]:
@@ -101,9 +99,7 @@ class OrderRepository(BaseRepository):
         )
         return list(result.scalars().all())
 
-    async def list_awaiting_first_reminder(
-        self, older_than: datetime
-    ) -> list[Order]:
+    async def list_awaiting_first_reminder(self, older_than: datetime) -> list[Order]:
         result = await self.session.execute(
             select(Order)
             .options(selectinload(Order.user))
@@ -115,9 +111,7 @@ class OrderRepository(BaseRepository):
         )
         return list(result.scalars().all())
 
-    async def list_awaiting_second_reminder(
-        self, older_than: datetime
-    ) -> list[Order]:
+    async def list_awaiting_second_reminder(self, older_than: datetime) -> list[Order]:
         result = await self.session.execute(
             select(Order)
             .options(selectinload(Order.user))

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.callbacks.catalog import CatalogCallback, VolumeCallback
@@ -32,7 +32,7 @@ async def handle_open_catalog(
     analytics_service = AnalyticsService(session)
     await analytics_service.track(AnalyticsEvents.CATALOG_OPENED, user_id=user.id)
     await callback.answer()
-    if callback.message is None:
+    if not isinstance(callback.message, Message):
         return
     await callback.message.edit_text(
         format_catalog_card(bot_settings),
@@ -61,7 +61,7 @@ async def handle_volume_selected(
     )
 
     await callback.answer()
-    if callback.message is None:
+    if not isinstance(callback.message, Message):
         return
     await callback.message.edit_text(
         format_volume_calculation(
@@ -90,7 +90,7 @@ async def handle_continue_to_checkout(
 
     await state.set_state(OrderStates.waiting_city)
     await callback.answer()
-    if callback.message is None:
+    if not isinstance(callback.message, Message):
         return
     await callback.message.edit_text("Введите город.")
 

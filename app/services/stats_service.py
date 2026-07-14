@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -66,5 +66,5 @@ class StatsService:
 
     @staticmethod
     def since_start_of_today() -> datetime:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return now.replace(hour=0, minute=0, second=0, microsecond=0)

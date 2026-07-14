@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -72,11 +72,11 @@ class AnalyticsService:
 
     @staticmethod
     def period_start(period: str) -> datetime:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if period == "today":
             return now.replace(hour=0, minute=0, second=0, microsecond=0)
         if period == "week":
             return now - timedelta(days=7)
         if period == "month":
             return now - timedelta(days=30)
-        return datetime(2000, 1, 1, tzinfo=timezone.utc)
+        return datetime(2000, 1, 1, tzinfo=UTC)

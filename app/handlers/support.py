@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from aiogram import F, Router
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.callbacks.main_menu import MenuCallback
@@ -24,5 +24,7 @@ async def handle_open_support(callback: CallbackQuery, session: AsyncSession, us
 
     text = "━━━━━━━━━━━━━━\nНужна помощь?\nНаш оператор поможет.\n━━━━━━━━━━━━━━"
     await callback.answer()
-    if callback.message is not None:
-        await callback.message.edit_text(text, reply_markup=build_support_keyboard(bot_settings.support_link))
+    if isinstance(callback.message, Message):
+        await callback.message.edit_text(
+            text, reply_markup=build_support_keyboard(bot_settings.support_link)
+        )

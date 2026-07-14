@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from aiogram import F, Router
 from aiogram.filters import Command
@@ -65,9 +65,10 @@ async def handle_promo_command(message: Message, state: FSMContext) -> None:
 async def handle_promo_menu(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     await callback.answer()
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text(
-            "━━━━━━━━━━━━━━\nПромокоды\n━━━━━━━━━━━━━━", reply_markup=build_admin_promo_menu_keyboard()
+            "━━━━━━━━━━━━━━\nПромокоды\n━━━━━━━━━━━━━━",
+            reply_markup=build_admin_promo_menu_keyboard(),
         )
 
 
@@ -75,12 +76,14 @@ async def handle_promo_menu(callback: CallbackQuery, state: FSMContext) -> None:
 async def handle_promo_create_start(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(AdminPromoStates.waiting_code)
     await callback.answer()
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text("Введите название промокода (например: WATER10).")
 
 
 @router.message(AdminPromoStates.waiting_code)
-async def handle_promo_code_input(message: Message, state: FSMContext, session: AsyncSession) -> None:
+async def handle_promo_code_input(
+    message: Message, state: FSMContext, session: AsyncSession
+) -> None:
     code = (message.text or "").strip().upper()
     if not code or len(code) > 32:
         await message.answer("Введите короткое название промокода (до 32 символов).")
@@ -91,7 +94,9 @@ async def handle_promo_code_input(message: Message, state: FSMContext, session: 
         return
     await state.update_data(code=code)
     await state.set_state(AdminPromoStates.waiting_discount_type)
-    await message.answer("Выберите тип скидки.", reply_markup=build_admin_promo_discount_type_keyboard())
+    await message.answer(
+        "Выберите тип скидки.", reply_markup=build_admin_promo_discount_type_keyboard()
+    )
 
 
 @router.callback_query(
@@ -101,7 +106,9 @@ async def handle_promo_code_input(message: Message, state: FSMContext, session: 
 async def handle_promo_discount_type(
     callback: CallbackQuery, callback_data: AdminCallback, state: FSMContext
 ) -> None:
-    discount_type = DiscountType.FIXED if callback_data.action == "type_fixed" else DiscountType.PERCENT
+    discount_type = (
+        DiscountType.FIXED if callback_data.action == "type_fixed" else DiscountType.PERCENT
+    )
     await state.update_data(discount_type=discount_type.value)
     await state.set_state(AdminPromoStates.waiting_discount_value)
     await callback.answer()
@@ -110,7 +117,7 @@ async def handle_promo_discount_type(
         if discount_type == DiscountType.FIXED
         else "Введите размер скидки в процентах (1–100)."
     )
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text(prompt)
 
 
@@ -118,13 +125,15 @@ async def handle_promo_discount_type(
 async def handle_promo_discount_value(message: Message, state: FSMContext) -> None:
     data = await state.get_data()
     value, error = parse_non_negative_int(message.text or "")
-    if error or value == 0:
+    if error is not None or value is None or value == 0:
         await message.answer(error or "Скидка должна быть больше нуля.")
         return
     if data["discount_type"] == DiscountType.PERCENT.value and value > 100:
         await message.answer("Процент скидки не может быть больше 100.")
         return
-    discount_value = value if data["discount_type"] == DiscountType.PERCENT.value else rubles_to_kopecks(value)
+    discount_value = (
+        value if data["discount_type"] == DiscountType.PERCENT.value else rubles_to_kopecks(value)
+    )
     await state.update_data(discount_value=discount_value)
     await state.set_state(AdminPromoStates.waiting_usage_limit)
     await message.answer("Сколько раз можно использовать промокод? Введите 0 — без ограничений.")
@@ -133,8 +142,8 @@ async def handle_promo_discount_value(message: Message, state: FSMContext) -> No
 @router.message(AdminPromoStates.waiting_usage_limit)
 async def handle_promo_usage_limit(message: Message, state: FSMContext) -> None:
     value, error = parse_non_negative_int(message.text or "")
-    if error:
-        await message.answer(error)
+    if error is not None or value is None:
+        await message.answer(error or "Введите корректное числовое значение.")
         return
     await state.update_data(usage_limit=value or None)
     await state.set_state(AdminPromoStates.waiting_expiry_days)
@@ -146,11 +155,11 @@ async def handle_promo_expiry(
     message: Message, state: FSMContext, session: AsyncSession, user: User
 ) -> None:
     value, error = parse_non_negative_int(message.text or "")
-    if error:
-        await message.answer(error)
+    if error is not None or value is None:
+        await message.answer(error or "Введите корректное числовое значение.")
         return
     data = await state.get_data()
-    expires_at = datetime.now(timezone.utc) + timedelta(days=value) if value else None
+    expires_at = datetime.now(UTC) + timedelta(days=value) if value else None
 
     promo = await PromoCodeRepository(session).create(
         code=data["code"],
@@ -159,18 +168,18 @@ async def handle_promo_expiry(
         usage_limit=data.get("usage_limit"),
         expires_at=expires_at,
     )
-    await AdminAuditLogRepository(session).add(
-        user.telegram_id, "promo_created", None, promo.code
-    )
+    await AdminAuditLogRepository(session).add(user.telegram_id, "promo_created", None, promo.code)
     await state.clear()
-    await message.answer(_format_promo_detail(promo), reply_markup=build_admin_promo_detail_keyboard(promo))
+    await message.answer(
+        _format_promo_detail(promo), reply_markup=build_admin_promo_detail_keyboard(promo)
+    )
 
 
 @router.callback_query(AdminCallback.filter((F.section == "promo") & (F.action == "list")))
 async def handle_promo_list(callback: CallbackQuery, session: AsyncSession) -> None:
     promos = await PromoCodeRepository(session).list_all()
     await callback.answer()
-    if callback.message is None:
+    if not isinstance(callback.message, Message):
         return
     if not promos:
         await callback.message.edit_text(
@@ -188,9 +197,11 @@ async def handle_promo_open(
 ) -> None:
     promo = await PromoCodeRepository(session).get_by_id(int(callback_data.param))
     await callback.answer()
-    if callback.message is None or promo is None:
+    if not isinstance(callback.message, Message) or promo is None:
         return
-    await callback.message.edit_text(_format_promo_detail(promo), reply_markup=build_admin_promo_detail_keyboard(promo))
+    await callback.message.edit_text(
+        _format_promo_detail(promo), reply_markup=build_admin_promo_detail_keyboard(promo)
+    )
 
 
 @router.callback_query(AdminCallback.filter((F.section == "promo") & (F.action == "toggle")))
@@ -207,8 +218,10 @@ async def handle_promo_toggle(
         user.telegram_id, "promo_toggled", str(not promo.is_active), str(promo.is_active)
     )
     await callback.answer()
-    if callback.message is not None:
-        await callback.message.edit_text(_format_promo_detail(promo), reply_markup=build_admin_promo_detail_keyboard(promo))
+    if isinstance(callback.message, Message):
+        await callback.message.edit_text(
+            _format_promo_detail(promo), reply_markup=build_admin_promo_detail_keyboard(promo)
+        )
 
 
 @router.callback_query(AdminCallback.filter((F.section == "promo") & (F.action == "delete")))
@@ -225,9 +238,13 @@ async def handle_promo_delete(
     await AdminAuditLogRepository(session).add(user.telegram_id, "promo_deleted", code, None)
     await callback.answer("Промокод удалён.")
     promos = await repo.list_all()
-    if callback.message is None:
+    if not isinstance(callback.message, Message):
         return
     if not promos:
-        await callback.message.edit_text("Промокодов пока нет.", reply_markup=build_admin_promo_menu_keyboard())
+        await callback.message.edit_text(
+            "Промокодов пока нет.", reply_markup=build_admin_promo_menu_keyboard()
+        )
         return
-    await callback.message.edit_text("Выберите промокод:", reply_markup=build_admin_promo_list_keyboard(promos))
+    await callback.message.edit_text(
+        "Выберите промокод:", reply_markup=build_admin_promo_list_keyboard(promos)
+    )

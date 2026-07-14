@@ -28,9 +28,7 @@ def build_main_menu_keyboard() -> InlineKeyboardMarkup:
         ),
     )
     builder.row(
-        InlineKeyboardButton(
-            text="🎁 Промокод", callback_data=MenuCallback(action="promo").pack()
-        ),
+        InlineKeyboardButton(text="🎁 Промокод", callback_data=MenuCallback(action="promo").pack()),
         InlineKeyboardButton(text="❓ FAQ", callback_data=MenuCallback(action="faq").pack()),
     )
     builder.row(
@@ -44,7 +42,9 @@ def build_main_menu_keyboard() -> InlineKeyboardMarkup:
 def build_back_to_menu_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(
-        InlineKeyboardButton(text="⬅ Главное меню", callback_data=MenuCallback(action="home").pack())
+        InlineKeyboardButton(
+            text="⬅ Главное меню", callback_data=MenuCallback(action="home").pack()
+        )
     )
     return builder.as_markup()
 
@@ -67,7 +67,9 @@ def build_catalog_keyboard(selected_volume: int | None = None) -> InlineKeyboard
             )
         )
     builder.row(
-        InlineKeyboardButton(text="⬅ Главное меню", callback_data=MenuCallback(action="home").pack())
+        InlineKeyboardButton(
+            text="⬅ Главное меню", callback_data=MenuCallback(action="home").pack()
+        )
     )
     return builder.as_markup()
 
@@ -136,12 +138,12 @@ def build_reminder_keyboard(order_id: int) -> InlineKeyboardMarkup:
 def build_promo_prompt_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(
-        InlineKeyboardButton(
-            text="Пропустить", callback_data=PromoCallback(action="skip").pack()
-        )
+        InlineKeyboardButton(text="Пропустить", callback_data=PromoCallback(action="skip").pack())
     )
     builder.row(
-        InlineKeyboardButton(text="⬅ Главное меню", callback_data=MenuCallback(action="home").pack())
+        InlineKeyboardButton(
+            text="⬅ Главное меню", callback_data=MenuCallback(action="home").pack()
+        )
     )
     return builder.as_markup()
 
@@ -155,7 +157,9 @@ def build_faq_list_keyboard(questions: list[tuple[int, str]]) -> InlineKeyboardM
             )
         )
     builder.row(
-        InlineKeyboardButton(text="⬅ Главное меню", callback_data=MenuCallback(action="home").pack())
+        InlineKeyboardButton(
+            text="⬅ Главное меню", callback_data=MenuCallback(action="home").pack()
+        )
     )
     return builder.as_markup()
 
@@ -163,7 +167,9 @@ def build_faq_list_keyboard(questions: list[tuple[int, str]]) -> InlineKeyboardM
 def build_faq_answer_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(
-        InlineKeyboardButton(text="⬅ Ко всем вопросам", callback_data=FaqCallback(action="back").pack())
+        InlineKeyboardButton(
+            text="⬅ Ко всем вопросам", callback_data=FaqCallback(action="back").pack()
+        )
     )
     return builder.as_markup()
 
@@ -172,6 +178,8 @@ def build_support_keyboard(support_link: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Написать оператору", url=support_link))
     builder.row(
-        InlineKeyboardButton(text="⬅ Главное меню", callback_data=MenuCallback(action="home").pack())
+        InlineKeyboardButton(
+            text="⬅ Главное меню", callback_data=MenuCallback(action="home").pack()
+        )
     )
     return builder.as_markup()

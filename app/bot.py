@@ -36,7 +36,11 @@ async def _start_webhook_server(bot) -> web.AppRunner:
 
 async def main() -> None:
     configure_logging()
-    logger.info("Starting water delivery bot (debug=%s, payment_provider=%s)", settings.debug, settings.payment_provider)
+    logger.info(
+        "Starting water delivery bot (debug=%s, payment_provider=%s)",
+        settings.debug,
+        settings.payment_provider,
+    )
 
     bot = create_bot()
     dispatcher = create_dispatcher()

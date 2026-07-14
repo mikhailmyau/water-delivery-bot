@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from aiogram import F, Router
+from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -49,7 +49,7 @@ async def handle_address_input(message: Message, state: FSMContext) -> None:
 
 @router.message(OrderStates.waiting_house)
 async def handle_house_input(
-    message: Message, state: FSMContext, session: AsyncSession, user: User
+    message: Message, state: FSMContext, session: AsyncSession, user: User, bot: Bot
 ) -> None:
     result = validate_house(message.text or "")
     if not result.is_valid:
@@ -76,12 +76,14 @@ async def handle_house_input(
             user, data["city"], data["street"], house, data["volume"], promo
         )
         order.user = user
-        notification_service = NotificationService(message.bot)
+        notification_service = NotificationService(bot)
         await notification_service.send_to_admin_group(format_admin_new_order_card(order))
 
     await state.update_data(order_id=order.id, editing_order_id=None)
     await state.set_state(OrderStates.waiting_confirmation)
-    await message.answer(format_order_card(order), reply_markup=build_order_preview_keyboard(order.id))
+    await message.answer(
+        format_order_card(order), reply_markup=build_order_preview_keyboard(order.id)
+    )
 
 
 @router.callback_query(OrderCallback.filter(F.action == "edit_address"))
@@ -91,7 +93,7 @@ async def handle_edit_address(
     await state.update_data(editing_order_id=callback_data.order_id)
     await state.set_state(OrderStates.waiting_city)
     await callback.answer()
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text("Введите город.")
 
 
@@ -99,7 +101,7 @@ async def handle_edit_address(
 async def handle_order_back(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     await callback.answer()
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text("Главное меню:", reply_markup=build_main_menu_keyboard())
 
 
@@ -118,7 +120,7 @@ async def handle_delivery_info(callback: CallbackQuery, session: AsyncSession) -
         "━━━━━━━━━━━━━━"
     )
     await callback.answer()
-    if callback.message is not None:
+    if isinstance(callback.message, Message):
         await callback.message.edit_text(text, reply_markup=build_main_menu_keyboard())
 
 

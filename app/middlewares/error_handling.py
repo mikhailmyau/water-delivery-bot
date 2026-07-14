@@ -41,5 +41,7 @@ class ErrorHandlingMiddleware(BaseMiddleware):
                 await event.answer(_USER_FRIENDLY_MESSAGE, show_alert=True)
             elif isinstance(event, Message):
                 await event.answer(_USER_FRIENDLY_MESSAGE)
-        except Exception:  # noqa: BLE001 — уведомление лучшее усилие, не должно плодить новые ошибки
+        except (
+            Exception
+        ):  # noqa: BLE001 — уведомление лучшее усилие, не должно плодить новые ошибки
             logger.warning("Failed to notify user about handled error", exc_info=True)

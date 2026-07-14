@@ -31,6 +31,8 @@ async def handle_profile(message: Message, session: AsyncSession, user: User) ->
         lines.append("━━━━━━━━━━━━━━")
         lines.append("Последние заказы:")
         for order in recent_orders:
-            lines.append(f"#{order.order_number} — {order.volume} л — {format_price(order.total_price)}")
+            lines.append(
+                f"#{order.order_number} — {order.volume} л — {format_price(order.total_price)}"
+            )
     lines.append("━━━━━━━━━━━━━━")
     await message.answer("\n".join(lines))

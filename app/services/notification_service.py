@@ -11,7 +11,12 @@ from __future__ import annotations
 import logging
 
 from aiogram import Bot
-from aiogram.exceptions import TelegramAPIError, TelegramForbiddenError, TelegramNotFound, TelegramRetryAfter
+from aiogram.exceptions import (
+    TelegramAPIError,
+    TelegramForbiddenError,
+    TelegramNotFound,
+    TelegramRetryAfter,
+)
 from aiogram.types import InlineKeyboardMarkup
 
 from app.config import settings
@@ -36,7 +41,9 @@ class NotificationService:
             await self.bot.send_message(telegram_id, text, reply_markup=reply_markup)
             return True
         except TelegramRetryAfter as exc:
-            logger.warning("Flood control at sending to %s, retry after %s", telegram_id, exc.retry_after)
+            logger.warning(
+                "Flood control at sending to %s, retry after %s", telegram_id, exc.retry_after
+            )
         except (TelegramForbiddenError, TelegramNotFound):
             logger.info("User %s is unreachable (blocked bot or deleted account)", telegram_id)
         except TelegramAPIError as exc:
@@ -55,7 +62,9 @@ class NotificationService:
         except TelegramAPIError as exc:
             logger.error("Failed to notify admin group %s: %s", settings.admin_group_id, exc)
         except Exception:  # noqa: BLE001
-            logger.exception("Unexpected error while notifying admin group %s", settings.admin_group_id)
+            logger.exception(
+                "Unexpected error while notifying admin group %s", settings.admin_group_id
+            )
 
     async def send_to_all_admins(self, text: str) -> None:
         for admin_id in settings.admin_ids:
