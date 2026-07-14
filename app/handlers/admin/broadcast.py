@@ -23,13 +23,6 @@ router = Router(name="admin_broadcast")
 router.message.filter(IsAdmin())
 router.callback_query.filter(IsAdmin())
 
-_CONTENT_TYPE_MAP = {
-    "photo": BroadcastContentType.PHOTO,
-    "video": BroadcastContentType.VIDEO,
-    "animation": BroadcastContentType.ANIMATION,
-    "document": BroadcastContentType.DOCUMENT,
-}
-
 
 def _extract_content(message: Message) -> BroadcastContent | None:
     if message.photo:

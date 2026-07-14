@@ -72,10 +72,6 @@ class UserRepository(BaseRepository):
         user.total_spent += total_price
         await self.session.flush()
 
-    async def count_all(self) -> int:
-        result = await self.session.execute(select(User.id))
-        return len(result.all())
-
     async def count_created_after(self, since: datetime) -> int:
         result = await self.session.execute(select(User.id).where(User.created_at >= since))
         return len(result.all())

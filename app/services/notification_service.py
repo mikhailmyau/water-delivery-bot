@@ -65,7 +65,3 @@ class NotificationService:
             logger.exception(
                 "Unexpected error while notifying admin group %s", settings.admin_group_id
             )
-
-    async def send_to_all_admins(self, text: str) -> None:
-        for admin_id in settings.admin_ids:
-            await self.send_to_user(admin_id, text)

@@ -26,6 +26,7 @@ async def handle_profile(message: Message, session: AsyncSession, user: User) ->
         f"Всего заказов: {user.orders_count}",
         f"Оплачено заказов: {user.paid_orders_count}",
         f"Сумма покупок: {format_price(user.total_spent)}",
+        f"Средний чек: {format_price(user.average_check)}",
     ]
     if recent_orders:
         lines.append("━━━━━━━━━━━━━━")

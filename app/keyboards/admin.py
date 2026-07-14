@@ -50,16 +50,6 @@ def build_admin_main_menu_keyboard() -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def build_admin_back_keyboard(section: str = "menu", action: str = "home") -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    builder.row(
-        InlineKeyboardButton(
-            text="⬅ Назад", callback_data=AdminCallback(section=section, action=action).pack()
-        )
-    )
-    return builder.as_markup()
-
-
 def build_admin_orders_menu_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(

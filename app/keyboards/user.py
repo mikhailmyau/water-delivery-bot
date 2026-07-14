@@ -39,16 +39,6 @@ def build_main_menu_keyboard() -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def build_back_to_menu_keyboard() -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    builder.row(
-        InlineKeyboardButton(
-            text="⬅ Главное меню", callback_data=MenuCallback(action="home").pack()
-        )
-    )
-    return builder.as_markup()
-
-
 def build_catalog_keyboard(selected_volume: int | None = None) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     volume_buttons = [

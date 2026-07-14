@@ -34,7 +34,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://water_bot:water_bot@postgres:5432/water_bot
       REDIS_URL: redis://redis:6379/0
     ports:
-      - "${PAYMENT_WEBHOOK_PORT:-8080}:8080"
+      - "${PAYMENT_WEBHOOK_PORT:-8080}:${PAYMENT_WEBHOOK_PORT:-8080}"
     depends_on:
       postgres:
         condition: service_healthy
