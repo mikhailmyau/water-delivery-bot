@@ -16,7 +16,6 @@ from app.keyboards.user import build_main_menu_keyboard, build_payment_keyboard
 from app.payments.factory import get_payment_provider
 from app.services.order_service import OrderService
 from app.services.payment_service import PaymentService
-from app.services.settings_service import SettingsService
 from app.utils.formatting import format_order_card, format_payment_success
 
 logger = logging.getLogger("app.handlers.payment")
@@ -66,13 +65,10 @@ async def handle_check_payment(
         )
         return
 
-    settings_service = SettingsService(session)
-    bot_settings = await settings_service.get()
     await callback.answer()
     if isinstance(callback.message, Message):
         await callback.message.edit_text(
-            format_payment_success(order, bot_settings.delivery_days),
-            reply_markup=build_main_menu_keyboard(),
+            format_payment_success(order), reply_markup=build_main_menu_keyboard()
         )
 
 

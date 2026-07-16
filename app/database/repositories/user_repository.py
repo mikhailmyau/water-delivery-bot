@@ -76,6 +76,23 @@ class UserRepository(BaseRepository):
         result = await self.session.execute(select(User.id).where(User.created_at >= since))
         return len(result.all())
 
+    async def list_awaiting_first_order_nudge(self, older_than: datetime) -> list[User]:
+        """Зарегистрировались раньше `older_than`, ни разу не заказывали и ещё не
+        получали это напоминание — см. app/scheduler/jobs.py::send_first_order_nudges."""
+        result = await self.session.execute(
+            select(User).where(
+                User.created_at <= older_than,
+                User.orders_count == 0,
+                User.first_order_nudge_sent_at.is_(None),
+                User.is_blocked.is_(False),
+            )
+        )
+        return list(result.scalars().all())
+
+    async def mark_first_order_nudge_sent(self, user: User) -> None:
+        user.first_order_nudge_sent_at = utcnow()
+        await self.session.flush()
+
     async def list_active_telegram_ids(self) -> list[int]:
         """Все telegram_id, кроме заблокировавших бота — используется для рассылки."""
         result = await self.session.execute(

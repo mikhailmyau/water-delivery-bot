@@ -5,11 +5,15 @@ from __future__ import annotations
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from app.callbacks.catalog import CatalogCallback, VolumeCallback
+from app.callbacks.catalog import BottleCallback, WaterTypeCallback
+from app.callbacks.city import CityCallback
 from app.callbacks.faq import FaqCallback
 from app.callbacks.main_menu import MenuCallback
-from app.callbacks.order import OrderCallback, PromoCallback
-from app.utils.constants import AVAILABLE_VOLUMES_LITERS
+from app.callbacks.order import OrderCallback
+from app.content import WATER_TYPE_LABELS, WATER_TYPE_ORDER
+from app.data.cities import CityEntry
+from app.database.models.water_type import WaterType
+from app.utils.money import format_price
 
 
 def build_main_menu_keyboard() -> InlineKeyboardMarkup:
@@ -21,14 +25,8 @@ def build_main_menu_keyboard() -> InlineKeyboardMarkup:
     )
     builder.row(
         InlineKeyboardButton(
-            text="💧 Каталог", callback_data=MenuCallback(action="catalog").pack()
-        ),
-        InlineKeyboardButton(
             text="🚚 Доставка", callback_data=MenuCallback(action="delivery").pack()
         ),
-    )
-    builder.row(
-        InlineKeyboardButton(text="🎁 Промокод", callback_data=MenuCallback(action="promo").pack()),
         InlineKeyboardButton(text="❓ FAQ", callback_data=MenuCallback(action="faq").pack()),
     )
     builder.row(
@@ -39,23 +37,87 @@ def build_main_menu_keyboard() -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def build_catalog_keyboard(selected_volume: int | None = None) -> InlineKeyboardMarkup:
+def build_water_type_keyboard(
+    prices: dict[WaterType, int], selected: WaterType | None = None
+) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    volume_buttons = [
-        InlineKeyboardButton(
-            text=f"• {volume} л •" if volume == selected_volume else f"{volume} л",
-            callback_data=VolumeCallback(liters=volume).pack(),
+    for water_type in WATER_TYPE_ORDER:
+        label = WATER_TYPE_LABELS[water_type]
+        price_text = format_price(prices[water_type])
+        text = (
+            f"• {label} — {price_text}/л •"
+            if water_type == selected
+            else f"{label} — {price_text}/л"
         )
-        for volume in AVAILABLE_VOLUMES_LITERS
-    ]
-    builder.row(*volume_buttons, width=5)
-    if selected_volume is not None:
         builder.row(
             InlineKeyboardButton(
-                text="Продолжить оформление",
-                callback_data=CatalogCallback(action="continue").pack(),
+                text=text, callback_data=WaterTypeCallback(code=water_type.value).pack()
             )
         )
+    builder.row(
+        InlineKeyboardButton(
+            text="⬅ Главное меню", callback_data=MenuCallback(action="home").pack()
+        )
+    )
+    return builder.as_markup()
+
+
+def build_bottle_stepper_keyboard() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text="➖", callback_data=BottleCallback(action="dec").pack()),
+        InlineKeyboardButton(text="➕", callback_data=BottleCallback(action="inc").pack()),
+    )
+    builder.row(
+        InlineKeyboardButton(
+            text="✅ Продолжить оформление", callback_data=BottleCallback(action="continue").pack()
+        )
+    )
+    builder.row(
+        InlineKeyboardButton(text="⬅ Назад", callback_data=BottleCallback(action="back").pack())
+    )
+    return builder.as_markup()
+
+
+def build_city_letters_keyboard(letters: list[str]) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    letter_buttons = [
+        InlineKeyboardButton(
+            text=letter, callback_data=CityCallback(action="letter", value=letter).pack()
+        )
+        for letter in letters
+    ]
+    builder.row(*letter_buttons, width=7)
+    builder.row(
+        InlineKeyboardButton(
+            text="✏️ Не нашёл свой город", callback_data=CityCallback(action="manual").pack()
+        )
+    )
+    builder.row(
+        InlineKeyboardButton(
+            text="⬅ Главное меню", callback_data=MenuCallback(action="home").pack()
+        )
+    )
+    return builder.as_markup()
+
+
+def build_city_list_keyboard(cities: list[CityEntry]) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    city_buttons = [
+        InlineKeyboardButton(
+            text=city.name, callback_data=CityCallback(action="pick", value=str(city.id)).pack()
+        )
+        for city in cities
+    ]
+    builder.row(*city_buttons, width=2)
+    builder.row(
+        InlineKeyboardButton(
+            text="⬅ Все буквы", callback_data=CityCallback(action="letters").pack()
+        ),
+        InlineKeyboardButton(
+            text="✏️ Свой город", callback_data=CityCallback(action="manual").pack()
+        ),
+    )
     builder.row(
         InlineKeyboardButton(
             text="⬅ Главное меню", callback_data=MenuCallback(action="home").pack()
@@ -125,14 +187,11 @@ def build_reminder_keyboard(order_id: int) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def build_promo_prompt_keyboard() -> InlineKeyboardMarkup:
+def build_first_order_nudge_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(
-        InlineKeyboardButton(text="Пропустить", callback_data=PromoCallback(action="skip").pack())
-    )
-    builder.row(
         InlineKeyboardButton(
-            text="⬅ Главное меню", callback_data=MenuCallback(action="home").pack()
+            text="🛒 Заказать воду", callback_data=MenuCallback(action="order").pack()
         )
     )
     return builder.as_markup()

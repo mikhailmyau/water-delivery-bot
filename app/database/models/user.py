@@ -34,6 +34,12 @@ class User(TimestampMixin, Base):
     total_spent: Mapped[int] = mapped_column(BigInteger, default=0, nullable=False)
     """Сумма всех оплаченных заказов в копейках."""
 
+    first_order_nudge_sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    """Когда пользователю отправлено разовое напоминание "вы так и не заказали"
+    (см. app/scheduler/jobs.py::send_first_order_nudges). NULL — ещё не отправляли."""
+
     def __repr__(self) -> str:
         return f"User(id={self.id}, telegram_id={self.telegram_id})"
 

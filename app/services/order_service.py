@@ -2,7 +2,13 @@
 
 Любое действие пользователя атомарно: заказ создаётся одной транзакцией,
 после успешного commit сессии он уже не может оказаться в неопределённом
-состоянии (см. ТЗ, глава 57 «Бизнес-логика»).
+состоянии.
+
+Доставка нигде в расчёте не участвует — она всегда включена в цену воды
+(таксист/курьер довозит бутыли до двери, это заложено в тариф). Единственное,
+что зависит от города, — обещанный срок, и это не цена, а текст-снимок
+(см. Order.delivery_days_estimate), который передаётся сюда уже готовым из
+хендлера (там же, где выбирается город, — см. app/handlers/order.py).
 """
 
 from __future__ import annotations
@@ -13,26 +19,22 @@ from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models.order import DeliveryStatus, Order, PaymentStatus
-from app.database.models.promo_code import PromoCode
 from app.database.models.user import User
+from app.database.models.water_type import WaterType
 from app.database.repositories.order_repository import OrderRepository
 from app.database.repositories.user_repository import UserRepository
 from app.services.analytics_service import AnalyticsEvents, AnalyticsService
-from app.services.delivery_service import DeliveryService
 from app.services.price_service import PriceService
-from app.services.promo_service import PromoService
+from app.utils.constants import BOTTLE_VOLUME_LITERS
 
 
 @dataclass(frozen=True, slots=True)
 class OrderCalculation:
     """Итог расчёта стоимости заказа до его создания (для карточки-калькулятора)."""
 
+    water_type: WaterType
     volume: int
     price_per_liter: int
-    product_price: int
-    delivery_price: int
-    is_free_delivery: bool
-    discount: int
     total_price: int
 
 
@@ -44,23 +46,16 @@ class OrderService:
         self.order_repo = OrderRepository(session)
         self.user_repo = UserRepository(session)
         self.price_service = PriceService(session)
-        self.delivery_service = DeliveryService(session)
-        self.promo_service = PromoService(session)
         self.analytics_service = AnalyticsService(session)
 
-    async def calculate(self, volume: int, promo: PromoCode | None = None) -> OrderCalculation:
-        price_per_liter = await self.price_service.get_price_per_liter()
-        product_price = price_per_liter * volume
-        quote = await self.delivery_service.calculate(volume)
-        discount = self.promo_service.calculate_discount(promo, product_price) if promo else 0
-        total_price = max(product_price - discount + quote.price, 0)
+    async def calculate(self, water_type: WaterType, bottles: int) -> OrderCalculation:
+        volume = bottles * BOTTLE_VOLUME_LITERS
+        price_per_liter = await self.price_service.get_price_per_liter(water_type)
+        total_price = price_per_liter * volume
         return OrderCalculation(
+            water_type=water_type,
             volume=volume,
             price_per_liter=price_per_liter,
-            product_price=product_price,
-            delivery_price=quote.price,
-            is_free_delivery=quote.is_free,
-            discount=discount,
             total_price=total_price,
         )
 
@@ -70,31 +65,27 @@ class OrderService:
         city: str,
         street: str,
         house: str,
-        volume: int,
-        promo: PromoCode | None,
+        water_type: WaterType,
+        bottles: int,
+        delivery_days_estimate: str,
+        city_matched: bool,
     ) -> Order:
-        calculation = await self.calculate(volume, promo)
+        calculation = await self.calculate(water_type, bottles)
         order = await self.order_repo.create(
             order_number=self._temporary_order_number(),
             user_id=user.id,
             city=city.strip(),
             street=street.strip(),
             house=house.strip(),
-            volume=volume,
+            water_type=calculation.water_type,
+            volume=calculation.volume,
             price_per_liter=calculation.price_per_liter,
-            delivery_price=calculation.delivery_price,
-            discount=calculation.discount,
             total_price=calculation.total_price,
-            promo_code_id=promo.id if promo else None,
+            delivery_days_estimate=delivery_days_estimate,
+            city_matched=city_matched,
         )
         order.order_number = f"{order.id:06d}"
         await self.session.flush()
-
-        if promo is not None:
-            await self.promo_service.register_usage(promo)
-            await self.analytics_service.track(
-                AnalyticsEvents.PROMO_APPLIED, user_id=user.id, order_id=order.id
-            )
 
         await self.user_repo.increment_orders_count(user)
         await self.analytics_service.track(

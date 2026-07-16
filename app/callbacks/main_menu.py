@@ -9,4 +9,4 @@ class MenuCallback(CallbackData, prefix="menu"):
     """Навигация из главного меню."""
 
     action: str
-    # "order" | "catalog" | "delivery" | "promo" | "support" | "faq" | "home"
+    # "order" | "delivery" | "support" | "faq" | "home"

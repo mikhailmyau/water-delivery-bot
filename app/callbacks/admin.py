@@ -10,7 +10,7 @@ from aiogram.filters.callback_data import CallbackData
 
 
 class AdminCallback(CallbackData, prefix="adm"):
-    """section: orders|price|delivery|promo|broadcast|analytics|stats|logs|menu."""
+    """section: orders|price|broadcast|analytics|stats|logs|menu."""
 
     section: str
     action: str

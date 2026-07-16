@@ -6,15 +6,16 @@ import enum
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base, BigIntPK, TimestampMixin
+from app.database.models.water_type import WaterType
+from app.utils.constants import BOTTLE_VOLUME_LITERS
 
 if TYPE_CHECKING:
     from app.database.models.payment import Payment
-    from app.database.models.promo_code import PromoCode
     from app.database.models.user import User
 
 
@@ -54,20 +55,29 @@ class Order(TimestampMixin, Base):
     street: Mapped[str] = mapped_column(String(256), nullable=False)
     house: Mapped[str] = mapped_column(String(32), nullable=False)
 
+    water_type: Mapped[WaterType] = mapped_column(
+        SAEnum(WaterType, native_enum=False, length=8), nullable=False
+    )
+
     volume: Mapped[int] = mapped_column(Integer, nullable=False)
-    """Объём заказа в литрах: одно из значений AVAILABLE_VOLUMES_LITERS."""
+    """Объём заказа в литрах: всегда кратен BOTTLE_VOLUME_LITERS (см. bottles)."""
 
     price_per_liter: Mapped[int] = mapped_column(Integer, nullable=False)
-    """Цена за литр в копейках на момент оформления заказа."""
-
-    delivery_price: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    """Стоимость доставки в копейках."""
-
-    discount: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    """Сумма скидки в копейках."""
+    """Цена за литр в копейках на момент оформления заказа (снимок цены выбранного вида воды)."""
 
     total_price: Mapped[int] = mapped_column(Integer, nullable=False)
-    """Итоговая сумма к оплате в копейках."""
+    """Итоговая сумма к оплате в копейках. Доставка всегда включена в цену воды,
+    отдельной строкой в стоимости заказа не выделяется."""
+
+    delivery_days_estimate: Mapped[str] = mapped_column(String(32), nullable=False)
+    """Обещанный срок доставки, снятый с города на момент оформления (см. app/data/cities.py).
+    Хранится как снимок, а не пересчитывается — сроки в справочнике могут поменяться,
+    а обещание, данное конкретному покупателю, меняться задним числом не должно."""
+
+    city_matched: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    """False — покупатель ввёл город вручную (не нашёл его в списке): admin-карточка
+    заказа должна обратить на это внимание, срок доставки для такого города — оценка
+    по умолчанию (см. FALLBACK_TIER_DAYS), её стоит перепроверить вручную."""
 
     payment_status: Mapped[PaymentStatus] = mapped_column(
         SAEnum(PaymentStatus, native_enum=False, length=16),
@@ -82,8 +92,6 @@ class Order(TimestampMixin, Base):
         index=True,
     )
 
-    promo_code_id: Mapped[int | None] = mapped_column(ForeignKey("promo_codes.id"), nullable=True)
-
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     reminder_first_sent_at: Mapped[datetime | None] = mapped_column(
@@ -94,10 +102,14 @@ class Order(TimestampMixin, Base):
     )
 
     user: Mapped[User] = relationship("User", foreign_keys=[user_id])
-    promo_code: Mapped[PromoCode | None] = relationship("PromoCode", foreign_keys=[promo_code_id])
     payments: Mapped[list[Payment]] = relationship(
         "Payment", back_populates="order", order_by="Payment.created_at.desc()"
     )
+
+    @property
+    def bottles(self) -> int:
+        """Количество бутылей по 20 л — то, что реально видит и считает покупатель."""
+        return self.volume // BOTTLE_VOLUME_LITERS
 
     @property
     def current_payment(self) -> Payment | None:

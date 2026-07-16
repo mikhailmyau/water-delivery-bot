@@ -12,6 +12,7 @@ from aiogram.types import BufferedInputFile, CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.callbacks.admin import AdminCallback
+from app.content import WATER_TYPE_LABELS
 from app.database.models.order import DeliveryStatus, Order
 from app.database.models.user import User
 from app.database.repositories.admin_audit_log_repository import AdminAuditLogRepository
@@ -34,21 +35,20 @@ router.callback_query.filter(IsAdmin())
 
 def _format_order_detail(order: Order) -> str:
     username = f"@{order.user.username}" if order.user and order.user.username else "—"
+    city_line = f"Город: {order.city}"
+    if not order.city_matched:
+        city_line += " ⚠️ не из справочника — уточните срок вручную"
     lines = [
         "━━━━━━━━━━━━━━",
         f"Заказ #{order.order_number}",
         "━━━━━━━━━━━━━━",
         f"ID: {order.user.telegram_id if order.user else '—'}",
         f"Username: {username}",
-        f"Город: {order.city}",
+        city_line,
         f"Адрес: {order.street}, {order.house}",
-        f"Объём: {order.volume} л",
+        f"Вода: {WATER_TYPE_LABELS[order.water_type]} — {order.volume} л",
         f"Стоимость: {format_price(order.price_per_liter * order.volume)}",
-        f"Доставка: {format_price(order.delivery_price)}",
-    ]
-    if order.discount:
-        lines.append(f"Скидка: {format_price(order.discount)}")
-    lines += [
+        f"Срок доставки: {order.delivery_days_estimate}",
         f"Итог: {format_price(order.total_price)}",
         f"Статус оплаты: {order.payment_status.value}",
         f"Статус доставки: {order.delivery_status.value}",

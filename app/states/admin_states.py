@@ -6,28 +6,14 @@ from aiogram.fsm.state import State, StatesGroup
 
 
 class AdminPriceStates(StatesGroup):
-    """Изменение цены за литр (/price)."""
+    """Изменение цены за литр для одного из трёх видов воды (/price).
+
+    Какой именно вид воды сейчас редактируется, хранится не в отдельном
+    состоянии, а в FSM-данных (`editing_water_type`) — состояние одно и то же
+    независимо от того, какую из трёх цен меняет администратор.
+    """
 
     waiting_price = State()
-
-
-class AdminDeliveryStates(StatesGroup):
-    """Изменение параметров доставки (/delivery)."""
-
-    waiting_delivery_price = State()
-    waiting_free_delivery_from = State()
-    waiting_delivery_days = State()
-    waiting_express_days = State()
-
-
-class AdminPromoStates(StatesGroup):
-    """Создание промокода (/promo)."""
-
-    waiting_code = State()
-    waiting_discount_type = State()
-    waiting_discount_value = State()
-    waiting_usage_limit = State()
-    waiting_expiry_days = State()
 
 
 class AdminBroadcastStates(StatesGroup):

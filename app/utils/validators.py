@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.utils.constants import AVAILABLE_VOLUMES_LITERS, MIN_ADDRESS_LENGTH, MIN_CITY_LENGTH
+from app.utils.constants import MIN_ADDRESS_LENGTH, MIN_CITY_LENGTH
 
 
 class ValidationResult:
@@ -43,12 +43,6 @@ def validate_house(value: str) -> ValidationResult:
     value = value.strip()
     if not value:
         return ValidationResult.error("Похоже, номер дома не указан. Проверьте его ещё раз.")
-    return ValidationResult.ok()
-
-
-def validate_volume(volume: int) -> ValidationResult:
-    if volume not in AVAILABLE_VOLUMES_LITERS:
-        return ValidationResult.error("Такой объём недоступен. Выберите один из предложенных.")
     return ValidationResult.ok()
 
 

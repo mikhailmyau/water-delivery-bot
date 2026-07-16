@@ -1,18 +1,19 @@
-"""Callback-данные каталога и выбора объёма."""
+"""Callback-данные выбора вида воды и количества бутылей."""
 
 from __future__ import annotations
 
 from aiogram.filters.callback_data import CallbackData
 
 
-class VolumeCallback(CallbackData, prefix="vol"):
-    """Выбор объёма заказа в литрах."""
+class WaterTypeCallback(CallbackData, prefix="wt"):
+    """Выбор вида воды на первом шаге заказа."""
 
-    liters: int
+    code: str
+    # значение WaterType: "slm" | "srm" | "gaz"
 
 
-class CatalogCallback(CallbackData, prefix="cat"):
-    """Действия на экране каталога/калькулятора."""
+class BottleCallback(CallbackData, prefix="btl"):
+    """Счётчик количества бутылей (по 20 л) на карточке-калькуляторе."""
 
     action: str
-    # "continue" | "back"
+    # "inc" | "dec" | "continue" | "back"

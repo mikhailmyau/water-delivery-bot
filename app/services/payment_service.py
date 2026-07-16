@@ -21,7 +21,6 @@ from app.database.repositories.user_repository import UserRepository
 from app.payments.base import PaymentProvider, PaymentStatusResult
 from app.services.analytics_service import AnalyticsEvents, AnalyticsService
 from app.services.notification_service import NotificationService
-from app.services.settings_service import SettingsService
 from app.utils.constants import CURRENCY_CODE
 from app.utils.formatting import format_admin_new_order_card, format_payment_success
 
@@ -43,7 +42,6 @@ class PaymentService:
         self.payment_repo = PaymentRepository(session)
         self.user_repo = UserRepository(session)
         self.analytics_service = AnalyticsService(session)
-        self.settings_service = SettingsService(session)
         self.notifications = NotificationService(bot) if bot is not None else None
 
     async def create_payment_for_order(self, order: Order) -> Payment:
@@ -127,10 +125,8 @@ class PaymentService:
         )
 
         if self.notifications is not None:
-            bot_settings = await self.settings_service.get()
             await self.notifications.send_to_user(
-                order.user.telegram_id,
-                format_payment_success(order, bot_settings.delivery_days),
+                order.user.telegram_id, format_payment_success(order)
             )
         return order
 

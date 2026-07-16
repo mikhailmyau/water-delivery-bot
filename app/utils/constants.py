@@ -6,13 +6,13 @@ from app.config import BASE_DIR
 
 LOG_FILE_PATH = BASE_DIR / "logs" / "app.log"
 
-# Объём заказа (в литрах). Свободный ввод объёма запрещён ТЗ — только выбор из списка.
-MIN_VOLUME_LITERS = 120
-MAX_VOLUME_LITERS = 200
-VOLUME_STEP_LITERS = 20
-AVAILABLE_VOLUMES_LITERS: tuple[int, ...] = tuple(
-    range(MIN_VOLUME_LITERS, MAX_VOLUME_LITERS + VOLUME_STEP_LITERS, VOLUME_STEP_LITERS)
-)
+# Вода доставляется бутылями по 20 л. Свободный ввод объёма запрещён — только
+# счётчик бутылей в интерфейсе (см. app/handlers/catalog.py).
+BOTTLE_VOLUME_LITERS = 20
+MIN_BOTTLES = 2  # 40 л — минимальный заказ (везём одной ходкой курьера/такси)
+MAX_BOTTLES = 10  # 200 л — максимальный заказ за раз
+MIN_VOLUME_LITERS = MIN_BOTTLES * BOTTLE_VOLUME_LITERS
+MAX_VOLUME_LITERS = MAX_BOTTLES * BOTTLE_VOLUME_LITERS
 
 # Валидация оформления заказа
 MIN_CITY_LENGTH = 2
@@ -20,8 +20,10 @@ MIN_ADDRESS_LENGTH = 5
 
 # Антифлуд
 START_THROTTLE_SECONDS = 1.0
-PROMO_CHECK_LIMIT = 3
-PROMO_CHECK_WINDOW_SECONDS = 60
+
+# Через сколько часов после первого /start без единого заказа отправить
+# разовое напоминание со спецпредложением (см. app/scheduler/jobs.py).
+FIRST_ORDER_NUDGE_DELAY_HOURS = 6
 
 # Ограничение "последних заказов" в админ-панели
 ADMIN_RECENT_ORDERS_LIMIT = 20

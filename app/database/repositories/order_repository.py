@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from app.database.base import utcnow
 from app.database.models.order import DeliveryStatus, Order, PaymentStatus
+from app.database.models.water_type import WaterType
 from app.database.repositories.base import BaseRepository
 from app.utils.constants import ADMIN_RECENT_ORDERS_LIMIT
 
@@ -27,12 +28,12 @@ class OrderRepository(BaseRepository):
         city: str,
         street: str,
         house: str,
+        water_type: WaterType,
         volume: int,
         price_per_liter: int,
-        delivery_price: int,
-        discount: int,
         total_price: int,
-        promo_code_id: int | None,
+        delivery_days_estimate: str,
+        city_matched: bool,
     ) -> Order:
         order = Order(
             order_number=order_number,
@@ -40,12 +41,12 @@ class OrderRepository(BaseRepository):
             city=city,
             street=street,
             house=house,
+            water_type=water_type,
             volume=volume,
             price_per_liter=price_per_liter,
-            delivery_price=delivery_price,
-            discount=discount,
             total_price=total_price,
-            promo_code_id=promo_code_id,
+            delivery_days_estimate=delivery_days_estimate,
+            city_matched=city_matched,
             payment_status=PaymentStatus.NEW,
             delivery_status=DeliveryStatus.CREATED,
         )
@@ -57,11 +58,7 @@ class OrderRepository(BaseRepository):
         if with_relations:
             result = await self.session.execute(
                 select(Order)
-                .options(
-                    selectinload(Order.user),
-                    selectinload(Order.promo_code),
-                    selectinload(Order.payments),
-                )
+                .options(selectinload(Order.user), selectinload(Order.payments))
                 .where(Order.id == order_id)
             )
             return result.scalar_one_or_none()
@@ -142,10 +139,20 @@ class OrderRepository(BaseRepository):
         order.delivery_status = status
         await self.session.flush()
 
-    async def update_address(self, order: Order, city: str, street: str, house: str) -> None:
+    async def update_address(
+        self,
+        order: Order,
+        city: str,
+        street: str,
+        house: str,
+        delivery_days_estimate: str,
+        city_matched: bool,
+    ) -> None:
         order.city = city
         order.street = street
         order.house = house
+        order.delivery_days_estimate = delivery_days_estimate
+        order.city_matched = city_matched
         await self.session.flush()
 
     async def delete(self, order: Order) -> None:

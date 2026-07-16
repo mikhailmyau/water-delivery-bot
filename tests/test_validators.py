@@ -8,7 +8,6 @@ from app.utils.validators import (
     validate_address,
     validate_city,
     validate_house,
-    validate_volume,
 )
 
 
@@ -32,14 +31,6 @@ def test_validate_address_ok():
 
 def test_validate_house_empty():
     assert validate_house("   ").is_valid is False
-
-
-def test_validate_volume_allowed():
-    assert validate_volume(160).is_valid is True
-
-
-def test_validate_volume_rejected():
-    assert validate_volume(150).is_valid is False
 
 
 def test_parse_positive_amount_valid():

@@ -11,10 +11,3 @@ class OrderCallback(CallbackData, prefix="ord"):
     action: str
     # "pay" | "edit_address" | "back" | "cancel" | "check_payment"
     order_id: int
-
-
-class PromoCallback(CallbackData, prefix="promo"):
-    """Действия на экране промокода."""
-
-    action: str
-    # "enter" | "skip" | "back"

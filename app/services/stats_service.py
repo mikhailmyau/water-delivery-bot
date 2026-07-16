@@ -8,7 +8,6 @@ from datetime import UTC, datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.repositories.order_repository import OrderRepository
-from app.database.repositories.promo_code_repository import PromoCodeRepository
 from app.database.repositories.user_repository import UserRepository
 from app.services.analytics_service import AnalyticsService
 
@@ -33,7 +32,6 @@ class StatsService:
     def __init__(self, session: AsyncSession) -> None:
         self.order_repo = OrderRepository(session)
         self.user_repo = UserRepository(session)
-        self.promo_repo = PromoCodeRepository(session)
         self.analytics_service = AnalyticsService(session)
 
     async def get_period_stats(self, period: str) -> PeriodStats:

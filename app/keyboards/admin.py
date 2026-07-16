@@ -6,8 +6,10 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.callbacks.admin import AdminCallback
+from app.content import WATER_TYPE_LABELS, WATER_TYPE_ORDER
 from app.database.models.order import DeliveryStatus, Order
-from app.database.models.promo_code import PromoCode
+from app.database.models.water_type import WaterType
+from app.utils.money import format_price
 
 
 def build_admin_main_menu_keyboard() -> InlineKeyboardMarkup:
@@ -18,15 +20,6 @@ def build_admin_main_menu_keyboard() -> InlineKeyboardMarkup:
         ),
         InlineKeyboardButton(
             text="💰 Цены", callback_data=AdminCallback(section="price", action="menu").pack()
-        ),
-    )
-    builder.row(
-        InlineKeyboardButton(
-            text="🚚 Доставка",
-            callback_data=AdminCallback(section="delivery", action="menu").pack(),
-        ),
-        InlineKeyboardButton(
-            text="🎁 Промокоды", callback_data=AdminCallback(section="promo", action="menu").pack()
         ),
     )
     builder.row(
@@ -163,124 +156,21 @@ def _next_delivery_statuses(current: DeliveryStatus) -> list[DeliveryStatus]:
     return []
 
 
-def build_admin_price_menu_keyboard() -> InlineKeyboardMarkup:
+def build_admin_price_menu_keyboard(prices: dict[WaterType, int]) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.row(
-        InlineKeyboardButton(
-            text="Изменить цену", callback_data=AdminCallback(section="price", action="edit").pack()
-        )
-    )
-    builder.row(
-        InlineKeyboardButton(
-            text="⬅ Назад", callback_data=AdminCallback(section="menu", action="home").pack()
-        )
-    )
-    return builder.as_markup()
-
-
-def build_admin_delivery_menu_keyboard() -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    builder.row(
-        InlineKeyboardButton(
-            text="Изменить стоимость",
-            callback_data=AdminCallback(section="delivery", action="edit_price").pack(),
-        )
-    )
-    builder.row(
-        InlineKeyboardButton(
-            text="Изменить бесплатную доставку",
-            callback_data=AdminCallback(section="delivery", action="edit_free_from").pack(),
-        )
-    )
-    builder.row(
-        InlineKeyboardButton(
-            text="Изменить сроки",
-            callback_data=AdminCallback(section="delivery", action="edit_days").pack(),
-        )
-    )
-    builder.row(
-        InlineKeyboardButton(
-            text="⬅ Назад", callback_data=AdminCallback(section="menu", action="home").pack()
-        )
-    )
-    return builder.as_markup()
-
-
-def build_admin_promo_menu_keyboard() -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    builder.row(
-        InlineKeyboardButton(
-            text="Создать", callback_data=AdminCallback(section="promo", action="create").pack()
-        ),
-        InlineKeyboardButton(
-            text="Список", callback_data=AdminCallback(section="promo", action="list").pack()
-        ),
-    )
-    builder.row(
-        InlineKeyboardButton(
-            text="⬅ Назад", callback_data=AdminCallback(section="menu", action="home").pack()
-        )
-    )
-    return builder.as_markup()
-
-
-def build_admin_promo_discount_type_keyboard() -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    builder.row(
-        InlineKeyboardButton(
-            text="Фиксированная сумма",
-            callback_data=AdminCallback(section="promo", action="type_fixed").pack(),
-        ),
-        InlineKeyboardButton(
-            text="Процент",
-            callback_data=AdminCallback(section="promo", action="type_percent").pack(),
-        ),
-    )
-    return builder.as_markup()
-
-
-def build_admin_promo_list_keyboard(promos: list[PromoCode]) -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    for promo in promos:
-        mark = "✅" if promo.is_active else "🚫"
+    for water_type in WATER_TYPE_ORDER:
+        label = WATER_TYPE_LABELS[water_type]
         builder.row(
             InlineKeyboardButton(
-                text=f"{mark} {promo.code}",
+                text=f"✏️ {label} — {format_price(prices[water_type])}/л",
                 callback_data=AdminCallback(
-                    section="promo", action="open", param=str(promo.id)
+                    section="price", action="edit", param=water_type.value
                 ).pack(),
             )
         )
     builder.row(
         InlineKeyboardButton(
-            text="⬅ Назад", callback_data=AdminCallback(section="promo", action="menu").pack()
-        )
-    )
-    return builder.as_markup()
-
-
-def build_admin_promo_detail_keyboard(promo: PromoCode) -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    toggle_text = "🚫 Деактивировать" if promo.is_active else "✅ Активировать"
-    builder.row(
-        InlineKeyboardButton(
-            text=toggle_text,
-            callback_data=AdminCallback(
-                section="promo", action="toggle", param=str(promo.id)
-            ).pack(),
-        )
-    )
-    builder.row(
-        InlineKeyboardButton(
-            text="🗑 Удалить",
-            callback_data=AdminCallback(
-                section="promo", action="delete", param=str(promo.id)
-            ).pack(),
-        )
-    )
-    builder.row(
-        InlineKeyboardButton(
-            text="⬅ Назад", callback_data=AdminCallback(section="promo", action="list").pack()
+            text="⬅ Назад", callback_data=AdminCallback(section="menu", action="home").pack()
         )
     )
     return builder.as_markup()

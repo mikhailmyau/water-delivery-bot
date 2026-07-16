@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 import pytest
 
+from app.database.base import utcnow
 from app.database.models.order import PaymentStatus
+from app.database.models.water_type import WaterType
 from app.database.repositories.order_repository import OrderRepository
 from app.database.repositories.user_repository import UserRepository
 from app.services.order_service import OrderService
@@ -30,7 +34,9 @@ async def test_order_repository_list_unpaid(session):
     await session.flush()
 
     order_service = OrderService(session)
-    order = await order_service.create_order(user, "Москва", "Тверская", "1", 120, None)
+    order = await order_service.create_order(
+        user, "Москва", "Тверская", "1", WaterType.SLM, 6, "до 1 дня", True
+    )
     await session.commit()
 
     order_repo = OrderRepository(session)
@@ -50,10 +56,49 @@ async def test_order_repository_get_by_number(session):
     await session.flush()
 
     order_service = OrderService(session)
-    order = await order_service.create_order(user, "Казань", "Баумана", "1", 120, None)
+    order = await order_service.create_order(
+        user, "Казань", "Баумана", "1", WaterType.SRM, 2, "до 3 дней", True
+    )
     await session.commit()
 
     order_repo = OrderRepository(session)
     found = await order_repo.get_by_number(order.order_number)
     assert found is not None
     assert found.id == order.id
+
+
+async def test_user_repository_first_order_nudge_query(session):
+    user_repo = UserRepository(session)
+    stale_user = await user_repo.create(101, "stale", "S", None, "ru", False)
+    fresh_user = await user_repo.create(102, "fresh", "F", None, "ru", False)
+    await session.flush()
+
+    threshold = utcnow() + timedelta(hours=1)  # оба "старше" порога прямо сейчас
+    candidates = await user_repo.list_awaiting_first_order_nudge(threshold)
+    candidate_ids = {u.id for u in candidates}
+    assert stale_user.id in candidate_ids
+    assert fresh_user.id in candidate_ids
+
+    await user_repo.mark_first_order_nudge_sent(stale_user)
+    await session.commit()
+
+    candidates_after = await user_repo.list_awaiting_first_order_nudge(threshold)
+    candidate_ids_after = {u.id for u in candidates_after}
+    assert stale_user.id not in candidate_ids_after
+    assert fresh_user.id in candidate_ids_after
+
+
+async def test_user_repository_first_order_nudge_excludes_users_with_orders(session):
+    user_repo = UserRepository(session)
+    user = await user_repo.create(103, "buyer", "B", None, "ru", False)
+    await session.flush()
+
+    order_service = OrderService(session)
+    await order_service.create_order(
+        user, "Омск", "Ленина", "1", WaterType.GAZ, 2, "до 5 дней", True
+    )
+    await session.commit()
+
+    threshold = utcnow() + timedelta(hours=1)
+    candidates = await user_repo.list_awaiting_first_order_nudge(threshold)
+    assert all(u.id != user.id for u in candidates)

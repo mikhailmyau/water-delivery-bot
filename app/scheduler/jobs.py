@@ -1,8 +1,10 @@
-"""Периодические задачи. Сейчас — единственная: напоминания о неоплаченных заказах.
+"""Периодические задачи планировщика.
 
-Не более двух напоминаний на заказ, интервалы настраиваются через .env
-(REMINDER_FIRST_DELAY_MINUTES / REMINDER_SECOND_DELAY_MINUTES) — см. ТЗ, глава
-«Неоплаченные заказы».
+1. Напоминания о неоплаченном заказе — не более двух на заказ, интервалы
+   настраиваются через .env (REMINDER_FIRST_DELAY_MINUTES /
+   REMINDER_SECOND_DELAY_MINUTES).
+2. Разовое напоминание тем, кто запустил бота, но за FIRST_ORDER_NUDGE_DELAY_HOURS
+   так и не оформил ни одного заказа — с акцентом на то, что доставка бесплатна.
 """
 
 from __future__ import annotations
@@ -15,10 +17,12 @@ from aiogram import Bot
 from app.config import settings
 from app.database.base import utcnow
 from app.database.repositories.order_repository import OrderRepository
+from app.database.repositories.user_repository import UserRepository
 from app.database.session import get_session
-from app.keyboards.user import build_reminder_keyboard
+from app.keyboards.user import build_first_order_nudge_keyboard, build_reminder_keyboard
 from app.services.notification_service import NotificationService
-from app.utils.formatting import format_reminder_message
+from app.utils.constants import FIRST_ORDER_NUDGE_DELAY_HOURS
+from app.utils.formatting import format_first_order_nudge, format_reminder_message
 
 logger = logging.getLogger("app.scheduler")
 
@@ -54,5 +58,26 @@ async def send_payment_reminders(bot: Bot) -> None:
             )
             await order_repo.mark_reminder_sent(order, second=True)
             logger.info("Second payment reminder sent: order=%s", order.order_number)
+
+        await session.commit()
+
+
+async def send_first_order_nudges(bot: Bot) -> None:
+    """Разовое сообщение тем, кто зарегистрировался (нажал /start), но так и не
+    создал ни одного заказа спустя FIRST_ORDER_NUDGE_DELAY_HOURS часов."""
+    async with get_session() as session:
+        user_repo = UserRepository(session)
+        notification_service = NotificationService(bot)
+
+        threshold = utcnow() - timedelta(hours=FIRST_ORDER_NUDGE_DELAY_HOURS)
+        candidates = await user_repo.list_awaiting_first_order_nudge(threshold)
+        for user in candidates:
+            await notification_service.send_to_user(
+                user.telegram_id,
+                format_first_order_nudge(),
+                build_first_order_nudge_keyboard(),
+            )
+            await user_repo.mark_first_order_nudge_sent(user)
+            logger.info("First-order nudge sent: user=%s", user.telegram_id)
 
         await session.commit()

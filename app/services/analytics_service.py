@@ -23,7 +23,6 @@ class AnalyticsEvents:
     PAYMENT_ATTEMPTED = "payment_attempted"
     PAYMENT_SUCCEEDED = "payment_succeeded"
     PAYMENT_CANCELLED = "payment_cancelled"
-    PROMO_APPLIED = "promo_applied"
     FAQ_OPENED = "faq_opened"
     SUPPORT_OPENED = "support_opened"
 

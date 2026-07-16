@@ -1,7 +1,7 @@
 """initial schema
 
 Revision ID: c0cd36ac44ae
-Revises: 
+Revises:
 Create Date: 2026-07-14 15:43:06.563724
 
 """
@@ -33,13 +33,10 @@ def upgrade() -> None:
     op.create_index(op.f('ix_admin_audit_log_admin_telegram_id'), 'admin_audit_log', ['admin_telegram_id'], unique=False)
     op.create_table('bot_settings',
     sa.Column('id', sa.BigInteger().with_variant(sa.Integer(), 'sqlite'), nullable=False),
-    sa.Column('price_per_liter', sa.Integer(), nullable=False),
-    sa.Column('delivery_price', sa.Integer(), nullable=False),
-    sa.Column('free_delivery_from_liters', sa.Integer(), nullable=False),
-    sa.Column('delivery_days', sa.String(length=32), nullable=False),
-    sa.Column('express_delivery_days', sa.String(length=32), nullable=False),
+    sa.Column('price_slm_per_liter', sa.Integer(), nullable=False),
+    sa.Column('price_srm_per_liter', sa.Integer(), nullable=False),
+    sa.Column('price_gaz_per_liter', sa.Integer(), nullable=False),
     sa.Column('welcome_text', sa.Text(), nullable=False),
-    sa.Column('faq_text', sa.Text(), nullable=False),
     sa.Column('support_link', sa.String(length=256), nullable=False),
     sa.Column('banner_file_id', sa.String(length=256), nullable=True),
     sa.Column('maintenance_mode', sa.Boolean(), nullable=False),
@@ -47,20 +44,6 @@ def upgrade() -> None:
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('promo_codes',
-    sa.Column('id', sa.BigInteger().with_variant(sa.Integer(), 'sqlite'), autoincrement=True, nullable=False),
-    sa.Column('code', sa.String(length=32), nullable=False),
-    sa.Column('discount_type', sa.Enum('FIXED', 'PERCENT', name='discounttype', native_enum=False, length=16), nullable=False),
-    sa.Column('discount_value', sa.Integer(), nullable=False),
-    sa.Column('usage_limit', sa.Integer(), nullable=True),
-    sa.Column('used_count', sa.Integer(), nullable=False),
-    sa.Column('expires_at', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('is_active', sa.Boolean(), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_promo_codes_code'), 'promo_codes', ['code'], unique=True)
     op.create_table('users',
     sa.Column('id', sa.BigInteger().with_variant(sa.Integer(), 'sqlite'), autoincrement=True, nullable=False),
     sa.Column('telegram_id', sa.BigInteger(), nullable=False),
@@ -74,6 +57,7 @@ def upgrade() -> None:
     sa.Column('orders_count', sa.Integer(), nullable=False),
     sa.Column('paid_orders_count', sa.Integer(), nullable=False),
     sa.Column('total_spent', sa.BigInteger(), nullable=False),
+    sa.Column('first_order_nudge_sent_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
     sa.PrimaryKeyConstraint('id')
@@ -87,20 +71,19 @@ def upgrade() -> None:
     sa.Column('city', sa.String(length=128), nullable=False),
     sa.Column('street', sa.String(length=256), nullable=False),
     sa.Column('house', sa.String(length=32), nullable=False),
+    sa.Column('water_type', sa.Enum('SLM', 'SRM', 'GAZ', name='watertype', native_enum=False, length=8), nullable=False),
     sa.Column('volume', sa.Integer(), nullable=False),
     sa.Column('price_per_liter', sa.Integer(), nullable=False),
-    sa.Column('delivery_price', sa.Integer(), nullable=False),
-    sa.Column('discount', sa.Integer(), nullable=False),
     sa.Column('total_price', sa.Integer(), nullable=False),
+    sa.Column('delivery_days_estimate', sa.String(length=32), nullable=False),
+    sa.Column('city_matched', sa.Boolean(), nullable=False),
     sa.Column('payment_status', sa.Enum('NEW', 'WAITING', 'SUCCESS', 'FAILED', 'EXPIRED', 'REFUNDED', name='paymentstatus', native_enum=False, length=16), nullable=False),
     sa.Column('delivery_status', sa.Enum('CREATED', 'WAITING_PAYMENT', 'PAID', 'PROCESSING', 'DELIVERING', 'DELIVERED', 'CANCELLED', name='deliverystatus', native_enum=False, length=20), nullable=False),
-    sa.Column('promo_code_id', sa.BigInteger().with_variant(sa.Integer(), 'sqlite'), nullable=True),
     sa.Column('paid_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('reminder_first_sent_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('reminder_second_sent_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
-    sa.ForeignKeyConstraint(['promo_code_id'], ['promo_codes.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -160,8 +143,6 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_users_telegram_id'), table_name='users')
     op.drop_index(op.f('ix_users_last_activity_at'), table_name='users')
     op.drop_table('users')
-    op.drop_index(op.f('ix_promo_codes_code'), table_name='promo_codes')
-    op.drop_table('promo_codes')
     op.drop_table('bot_settings')
     op.drop_index(op.f('ix_admin_audit_log_admin_telegram_id'), table_name='admin_audit_log')
     op.drop_table('admin_audit_log')
