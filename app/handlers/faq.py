@@ -1,4 +1,4 @@
-"""Раздел FAQ: вопросы раскрываются редактированием текущего сообщения."""
+"""Раздел «Частые вопросы»: вопросы раскрываются редактированием текущего сообщения."""
 
 from __future__ import annotations
 
@@ -9,19 +9,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.callbacks.faq import FaqCallback
 from app.callbacks.main_menu import MenuCallback
 from app.content import (
+    GUARANTEES,
     REVIEWS_GROUP_URL,
     SUPPLY_CHANNEL_URL,
     WATER_TYPE_DESCRIPTIONS,
     WATER_TYPE_LABELS,
+    WATER_TYPE_ORDER,
 )
 from app.database.models.user import User
-from app.database.models.water_type import WaterType
 from app.keyboards.user import build_faq_answer_keyboard, build_faq_list_keyboard
 from app.services.analytics_service import AnalyticsEvents, AnalyticsService
 from app.utils.constants import MAX_BOTTLES, MAX_VOLUME_LITERS, MIN_BOTTLES, MIN_VOLUME_LITERS
 
 router = Router(name="faq")
 
+_TITLE = "❓ Частые вопросы"
+
+# Вопрос "Что делать, если возникла проблема?" сюда намеренно не включён —
+# он дублирует отдельную кнопку «Поддержка» в главном меню.
 _FAQ_ITEMS: list[tuple[int, str, str]] = [
     (
         1,
@@ -45,35 +50,34 @@ _FAQ_ITEMS: list[tuple[int, str, str]] = [
         4,
         "Какие виды воды у вас есть?",
         "\n".join(
-            f"{WATER_TYPE_LABELS[wt]} — {WATER_TYPE_DESCRIPTIONS[wt]}"
-            for wt in (WaterType.SLM, WaterType.SRM, WaterType.GAZ)
+            f"{WATER_TYPE_LABELS[wt]} — {WATER_TYPE_DESCRIPTIONS[wt]}" for wt in WATER_TYPE_ORDER
         ),
     ),
     (
         5,
+        "Какие у вас гарантии?",
+        "\n".join(f"✅ {item}" for item in GUARANTEES),
+    ),
+    (
+        6,
         "Какие способы оплаты?",
         "Оплата картой онлайн — сразу после оформления заказа, по защищённой ссылке.",
     ),
     (
-        6,
+        7,
         "Как изменить заказ?",
         "На карточке заказа до оплаты доступна кнопка «Изменить адрес». "
         "Для изменения вида воды или объёма — оформите новый заказ.",
     ),
     (
-        7,
+        8,
         "Как отменить заказ?",
         "На карточке неоплаченного заказа есть кнопка «Отменить заказ».",
     ),
     (
-        8,
+        9,
         "Есть ли отзывы и информация о поставках?",
         f"Да — канал с поставками: {SUPPLY_CHANNEL_URL}\nОтзывы клиентов: {REVIEWS_GROUP_URL}",
-    ),
-    (
-        9,
-        "Что делать, если возникла проблема?",
-        "Напишите нам в поддержку — мы отвечаем быстро и решаем любые вопросы.",
     ),
 ]
 
@@ -85,7 +89,7 @@ async def handle_open_faq(callback: CallbackQuery, session: AsyncSession, user: 
     await callback.answer()
     if isinstance(callback.message, Message):
         await callback.message.edit_text(
-            "❓ Часто задаваемые вопросы",
+            _TITLE,
             reply_markup=build_faq_list_keyboard(
                 [(item_id, title) for item_id, title, _ in _FAQ_ITEMS]
             ),
@@ -100,7 +104,8 @@ async def handle_open_question(callback: CallbackQuery, callback_data: FaqCallba
         return
     _, title, answer = match
     await callback.message.edit_text(
-        f"{title}\n\n{answer}", reply_markup=build_faq_answer_keyboard()
+        f"<blockquote><b>{title}</b>\n\n{answer}</blockquote>",
+        reply_markup=build_faq_answer_keyboard(),
     )
 
 
@@ -109,7 +114,7 @@ async def handle_faq_back(callback: CallbackQuery) -> None:
     await callback.answer()
     if isinstance(callback.message, Message):
         await callback.message.edit_text(
-            "❓ Часто задаваемые вопросы",
+            _TITLE,
             reply_markup=build_faq_list_keyboard(
                 [(item_id, title) for item_id, title, _ in _FAQ_ITEMS]
             ),

@@ -1,4 +1,4 @@
-"""Callback-данные выбора вида воды и количества бутылей."""
+"""Callback-данные выбора вида воды и объёма."""
 
 from __future__ import annotations
 
@@ -9,11 +9,17 @@ class WaterTypeCallback(CallbackData, prefix="wt"):
     """Выбор вида воды на первом шаге заказа."""
 
     code: str
-    # значение WaterType: "slm" | "srm" | "gaz"
+    # значение WaterType: "slm" | "srm" | "vsm" | "gaz"
 
 
-class BottleCallback(CallbackData, prefix="btl"):
-    """Счётчик количества бутылей (по 20 л) на карточке-калькуляторе."""
+class VolumeCallback(CallbackData, prefix="vol"):
+    """Выбор объёма заказа в литрах (готовое значение, не ввод)."""
+
+    liters: int
+
+
+class CatalogCallback(CallbackData, prefix="cat"):
+    """Действия на экране каталога/калькулятора."""
 
     action: str
-    # "inc" | "dec" | "continue" | "back"
+    # "continue" | "back"

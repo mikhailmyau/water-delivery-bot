@@ -6,13 +6,16 @@ from app.config import BASE_DIR
 
 LOG_FILE_PATH = BASE_DIR / "logs" / "app.log"
 
-# Вода доставляется бутылями по 20 л. Свободный ввод объёма запрещён — только
-# счётчик бутылей в интерфейсе (см. app/handlers/catalog.py).
+# Вода доставляется бутылями по 20 л. Объём выбирается кнопкой с готовым
+# значением (не вводится и не считается +/-) — см. app/handlers/catalog.py.
 BOTTLE_VOLUME_LITERS = 20
 MIN_BOTTLES = 2  # 40 л — минимальный заказ (везём одной ходкой курьера/такси)
 MAX_BOTTLES = 10  # 200 л — максимальный заказ за раз
 MIN_VOLUME_LITERS = MIN_BOTTLES * BOTTLE_VOLUME_LITERS
 MAX_VOLUME_LITERS = MAX_BOTTLES * BOTTLE_VOLUME_LITERS
+AVAILABLE_VOLUMES_LITERS: tuple[int, ...] = tuple(
+    range(MIN_VOLUME_LITERS, MAX_VOLUME_LITERS + BOTTLE_VOLUME_LITERS, BOTTLE_VOLUME_LITERS)
+)
 
 # Валидация оформления заказа
 MIN_CITY_LENGTH = 2

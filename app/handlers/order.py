@@ -13,7 +13,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.callbacks.catalog import BottleCallback
+from app.callbacks.catalog import CatalogCallback
 from app.callbacks.city import CityCallback
 from app.callbacks.main_menu import MenuCallback
 from app.callbacks.order import OrderCallback
@@ -45,12 +45,15 @@ from app.utils.validators import validate_address, validate_city, validate_house
 
 router = Router(name="order")
 
+_STREET_PROMPT = "🏠 <i>Введите улицу (без номера дома).</i>"
+_HOUSE_PROMPT = "🏠 <i>Введите номер дома.</i>"
 
-@router.callback_query(BottleCallback.filter(F.action == "continue"))
+
+@router.callback_query(CatalogCallback.filter(F.action == "continue"))
 async def handle_continue_to_checkout(callback: CallbackQuery, state: FSMContext) -> None:
     data = await state.get_data()
-    if not data.get("water_type"):
-        await callback.answer("Сначала выберите вид воды.", show_alert=True)
+    if not data.get("bottles"):
+        await callback.answer("Сначала выберите объём.", show_alert=True)
         return
 
     await state.set_state(OrderStates.waiting_city)
@@ -109,7 +112,7 @@ async def handle_city_picked(
     await state.set_state(OrderStates.waiting_address)
     await callback.answer()
     if isinstance(callback.message, Message):
-        await callback.message.edit_text("Введите улицу.")
+        await callback.message.edit_text(_STREET_PROMPT)
 
 
 @router.message(OrderStates.waiting_city)
@@ -131,7 +134,7 @@ async def handle_city_manual_input(message: Message, state: FSMContext) -> None:
         manual_city_mode=False,
     )
     await state.set_state(OrderStates.waiting_address)
-    await message.answer("Введите улицу.")
+    await message.answer(_STREET_PROMPT)
 
 
 @router.message(OrderStates.waiting_address)
@@ -142,7 +145,7 @@ async def handle_address_input(message: Message, state: FSMContext) -> None:
         return
     await state.update_data(street=(message.text or "").strip())
     await state.set_state(OrderStates.waiting_house)
-    await message.answer("Введите номер дома.")
+    await message.answer(_HOUSE_PROMPT)
 
 
 @router.message(OrderStates.waiting_house)

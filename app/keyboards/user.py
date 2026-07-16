@@ -5,7 +5,7 @@ from __future__ import annotations
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from app.callbacks.catalog import BottleCallback, WaterTypeCallback
+from app.callbacks.catalog import CatalogCallback, VolumeCallback, WaterTypeCallback
 from app.callbacks.city import CityCallback
 from app.callbacks.faq import FaqCallback
 from app.callbacks.main_menu import MenuCallback
@@ -13,6 +13,7 @@ from app.callbacks.order import OrderCallback
 from app.content import WATER_TYPE_LABELS, WATER_TYPE_ORDER
 from app.data.cities import CityEntry
 from app.database.models.water_type import WaterType
+from app.utils.constants import AVAILABLE_VOLUMES_LITERS
 from app.utils.money import format_price
 
 
@@ -27,7 +28,9 @@ def build_main_menu_keyboard() -> InlineKeyboardMarkup:
         InlineKeyboardButton(
             text="🚚 Доставка", callback_data=MenuCallback(action="delivery").pack()
         ),
-        InlineKeyboardButton(text="❓ FAQ", callback_data=MenuCallback(action="faq").pack()),
+        InlineKeyboardButton(
+            text="❓ Частые вопросы", callback_data=MenuCallback(action="faq").pack()
+        ),
     )
     builder.row(
         InlineKeyboardButton(
@@ -62,19 +65,25 @@ def build_water_type_keyboard(
     return builder.as_markup()
 
 
-def build_bottle_stepper_keyboard() -> InlineKeyboardMarkup:
+def build_volume_keyboard(selected_volume: int | None = None) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.row(
-        InlineKeyboardButton(text="➖", callback_data=BottleCallback(action="dec").pack()),
-        InlineKeyboardButton(text="➕", callback_data=BottleCallback(action="inc").pack()),
-    )
-    builder.row(
+    volume_buttons = [
         InlineKeyboardButton(
-            text="✅ Продолжить оформление", callback_data=BottleCallback(action="continue").pack()
+            text=f"• {volume} л •" if volume == selected_volume else f"{volume} л",
+            callback_data=VolumeCallback(liters=volume).pack(),
         )
-    )
+        for volume in AVAILABLE_VOLUMES_LITERS
+    ]
+    builder.row(*volume_buttons, width=3)
+    if selected_volume is not None:
+        builder.row(
+            InlineKeyboardButton(
+                text="✅ Продолжить оформление",
+                callback_data=CatalogCallback(action="continue").pack(),
+            )
+        )
     builder.row(
-        InlineKeyboardButton(text="⬅ Назад", callback_data=BottleCallback(action="back").pack())
+        InlineKeyboardButton(text="⬅ Назад", callback_data=CatalogCallback(action="back").pack())
     )
     return builder.as_markup()
 

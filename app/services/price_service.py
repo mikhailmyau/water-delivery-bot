@@ -16,6 +16,7 @@ from app.services.settings_service import SettingsService
 _SETTINGS_FIELD_BY_TYPE: dict[WaterType, str] = {
     WaterType.SLM: "price_slm_per_liter",
     WaterType.SRM: "price_srm_per_liter",
+    WaterType.VSM: "price_vsm_per_liter",
     WaterType.GAZ: "price_gaz_per_liter",
 }
 

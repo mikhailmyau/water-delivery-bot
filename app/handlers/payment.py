@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 
 from aiogram import Bot, F, Router
@@ -16,7 +17,11 @@ from app.keyboards.user import build_main_menu_keyboard, build_payment_keyboard
 from app.payments.factory import get_payment_provider
 from app.services.order_service import OrderService
 from app.services.payment_service import PaymentService
-from app.utils.formatting import format_order_card, format_payment_success
+from app.utils.formatting import (
+    format_order_cancelled_message,
+    format_order_card,
+    format_payment_success,
+)
 
 logger = logging.getLogger("app.handlers.payment")
 
@@ -37,11 +42,38 @@ async def handle_pay(
         await callback.answer("Заказ уже оплачен.", show_alert=True)
         return
 
-    payment_service = PaymentService(session, get_payment_provider(), bot)
+    provider = get_payment_provider()
+    payment_service = PaymentService(session, provider, bot)
     payment = await payment_service.create_payment_for_order(order)
 
     await callback.answer()
-    if isinstance(callback.message, Message) and payment.payment_url is not None:
+    if not isinstance(callback.message, Message):
+        return
+
+    if provider.name == "mock":
+        # ВРЕМЕННО для тестирования: с mock-провайдером (PAYMENT_PROVIDER=mock)
+        # нажатие «Оплатить» сразу считается успешной оплатой — без перехода
+        # на страницу mock-чекаута, чтобы удобнее было тестировать остальной
+        # сценарий. На боевом провайдере (yookassa) эта ветка не выполняется —
+        # там provider.name != "mock", и оплата идёт как обычно, через реальный
+        # платёжный шлюз.
+        synthetic_webhook_body = json.dumps(
+            {
+                "provider_payment_id": payment.provider_payment_id,
+                "status": "succeeded",
+                "amount": payment.amount,
+            }
+        ).encode()
+        status_result = provider.parse_webhook(synthetic_webhook_body, {}, None)
+        if status_result is not None:
+            paid_order = await payment_service.handle_status_result(status_result)
+            if paid_order is not None:
+                await callback.message.edit_text(
+                    format_payment_success(paid_order), reply_markup=build_main_menu_keyboard()
+                )
+                return
+
+    if payment.payment_url is not None:
         await callback.message.edit_text(
             format_order_card(order),
             reply_markup=build_payment_keyboard(order.id, payment.payment_url),
@@ -89,7 +121,5 @@ async def handle_cancel_order(
     await state.clear()
     await callback.answer()
     if isinstance(callback.message, Message):
-        await callback.message.edit_text(
-            "Заказ отменён. Если передумаете — мы всегда на связи.",
-            reply_markup=build_main_menu_keyboard(),
-        )
+        await callback.message.edit_text(format_order_cancelled_message())
+        await callback.message.answer("Главное меню:", reply_markup=build_main_menu_keyboard())

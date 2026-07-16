@@ -13,20 +13,20 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_calculate_matches_default_slm_price(session):
-    # 8 бутылей (160 л) СЛМ по умолчанию 77 ₽/л -> 12 320 ₽, доставка включена.
+    # 8 бутылей (160 л) СЛМ по умолчанию 70,99 ₽/л, доставка включена.
     service = OrderService(session)
     calculation = await service.calculate(WaterType.SLM, 8)
     assert calculation.volume == 160
-    assert calculation.price_per_liter == 7700
-    assert calculation.total_price == 7700 * 160
+    assert calculation.price_per_liter == 7099
+    assert calculation.total_price == 7099 * 160
 
 
 async def test_calculate_uses_price_of_selected_type(session):
     service = OrderService(session)
-    calculation = await service.calculate(WaterType.SRM, 2)
+    calculation = await service.calculate(WaterType.VSM, 2)
     assert calculation.volume == 40
-    assert calculation.price_per_liter == 10000
-    assert calculation.total_price == 10000 * 40
+    assert calculation.price_per_liter == 10290
+    assert calculation.total_price == 10290 * 40
 
 
 async def test_create_order_generates_zero_padded_number(session):

@@ -16,32 +16,34 @@ from __future__ import annotations
 
 from app.database.models.water_type import WaterType
 
-BRAND_NAME = "AquaLine"  # ЗАПОЛНИТЬ: реальное название/бренд компании
-BRAND_CLAIM = "один из крупнейших поставщиков питьевой воды в России"  # ЗАПОЛНИТЬ при необходимости
+BRAND_NAME = "Aqua.Online"
+REVIEWS_GROUP_URL = "https://t.me/aqua_online_rev"
 
-# ЗАПОЛНИТЬ: реальные ссылки. Пока это заглушки, бот с ними всё равно запустится
-# и покажет кнопки — просто ведут в никуда, пока не заменены.
+# ЗАПОЛНИТЬ: реальная ссылка на канал с поставками — этот пока заглушка,
+# в главном экране сейчас не используется (только в FAQ), но замените перед продакшеном.
 SUPPLY_CHANNEL_URL = "https://t.me/REPLACE_WITH_SUPPLY_CHANNEL"
-REVIEWS_GROUP_URL = "https://t.me/REPLACE_WITH_REVIEWS_GROUP"
-
-# Строка социального доказательства на главном экране. Замените на реальную
-# цифру, когда она появится — сейчас это иллюстративная заглушка.
-SOCIAL_PROOF_LINE = "Нам уже доверяют тысячи клиентов по всей России"
 
 WATER_TYPE_LABELS: dict[WaterType, str] = {
     WaterType.SLM: "СЛМ",
     WaterType.SRM: "СРМ",
+    WaterType.VSM: "ВСМ",
     WaterType.GAZ: "ГАЗ",
 }
 
 WATER_TYPE_DESCRIPTIONS: dict[WaterType, str] = {
     WaterType.SLM: "слабоминерализованная, негазированная",
     WaterType.SRM: "среднеминерализованная, негазированная",
+    WaterType.VSM: "высокоминерализованная, негазированная",
     WaterType.GAZ: "газированная",
 }
 
 # Порядок кнопок выбора вида воды в каталоге.
-WATER_TYPE_ORDER: tuple[WaterType, ...] = (WaterType.SLM, WaterType.SRM, WaterType.GAZ)
+WATER_TYPE_ORDER: tuple[WaterType, ...] = (
+    WaterType.SLM,
+    WaterType.SRM,
+    WaterType.VSM,
+    WaterType.GAZ,
+)
 
 GUARANTEES: tuple[str, ...] = (
     "Контролируем качество каждой партии перед отправкой",
